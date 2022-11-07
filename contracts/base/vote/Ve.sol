@@ -598,6 +598,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
 
   function attachToken(uint _tokenId) external override {
     require(msg.sender == _voter(), "!voter");
+    require(attachments[_tokenId] == 0, "1 gauge = 1 veNFT");
     attachments[_tokenId] = attachments[_tokenId] + 1;
   }
 

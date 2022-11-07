@@ -308,7 +308,8 @@ describe("gauge and bribe tests", function () {
     const bribeAdr = await core.voter.bribes(gaugeAdr);
     const bribe = await Bribe__factory.connect(bribeAdr, owner);
 
-    await TestHelper.depositToGauge(owner, gauge, pair, await pair.balanceOf(owner.address), 1);
+    await expect(TestHelper.depositToGauge(owner, gauge, pair, await pair.balanceOf(owner.address), 1)).to.be.revertedWith('1 gauge = 1 veNFT');
+    await TestHelper.depositToGauge(owner, gauge, pair, await pair.balanceOf(owner.address), 3);
     const fees = await pair.fees();
 
     expect(await mim.balanceOf(bribeAdr)).is.eq(0);
