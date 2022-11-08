@@ -21,6 +21,10 @@ const argv = require('yargs/yargs')()
       type: "number",
       default: 31337
     },
+    neonDevnetRpcUrl: {
+      type: "string",
+      default: 'https://devnet.neonevm.org'
+    },
     bscRpcUrl: {
       type: "string",
       default: ''
@@ -84,11 +88,12 @@ export default {
       // loggingEnabled: true
     },
     neondevnet: {
-      url: 'https://devnet.neonevm.org',
+      url: argv.neonDevnetRpcUrl,
       timeout: 99999,
       chainId: 245022926,
       network_id: 245022926,
       accounts: [argv.privateKey],
+      // gasPrice: 138_699_406_200
     },
     bsc: {
       url: argv.bscRpcUrl,

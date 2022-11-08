@@ -13,7 +13,7 @@ import chai from "chai";
 import {Deploy} from "../../../scripts/deploy/Deploy";
 import {TimeUtils} from "../../TimeUtils";
 import {TestHelper} from "../../TestHelper";
-import {BscTestnetAddresses} from "../../../scripts/addresses/BscTestnetAddresses";
+import {NeonDevnetAddresses} from "../../../scripts/addresses/NeonDevnetAddresses";
 import {parseUnits} from "ethers/lib/utils";
 import {CoreAddresses} from "../../../scripts/deploy/CoreAddresses";
 import {Misc} from "../../../scripts/Misc";
@@ -53,8 +53,8 @@ describe("ve tests", function () {
 
     core = await Deploy.deployCore(
       owner,
-      BscTestnetAddresses.WBNB_TOKEN,
-      [BscTestnetAddresses.WBNB_TOKEN, ust.address, mim.address, dai.address],
+      NeonDevnetAddresses.WNATIVE_TOKEN,
+      [NeonDevnetAddresses.WNATIVE_TOKEN, ust.address, mim.address, dai.address],
       [owner.address, owner2.address],
       [parseUnits('100'), parseUnits('100')],
       parseUnits('200')

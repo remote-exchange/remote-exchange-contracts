@@ -161,24 +161,25 @@ function distribute(address token) external
 
 ### Neon devnet deployment
 
-| Name       | Address                                                                                                                           |
-|:-----------|:----------------------------------------------------------------------------------------------------------------------------------|
-| USDC_TOKEN | [0x8A56FA4d0768c5f15C88E40D4256F41819AbaD56](https://neonscan.org/address/0x8A56FA4d0768c5f15C88E40D4256F41819AbaD56) |
-| WDAI_TOKEN | [0x583E3F2A7a2F78F0ed2bB177563C3D26769e52Ea](https://neonscan.org/address/0x583E3F2A7a2F78F0ed2bB177563C3D26769e52Ea) |
-| USDT_TOKEN | [0x5EFc3A6eD6FDA49702ffb1c65FB433387892b96d](https://neonscan.org/address/0x5EFc3A6eD6FDA49702ffb1c65FB433387892b96d)             |
+| Name        | Address                                                                                                                           |
+|:------------|:----------------------------------------------------------------------------------------------------------------------------------|
+| WNEON_TOKEN | [0xf8ad328e98f85fccbf09e43b16dcbbda7e84beab](https://neonscan.org/address/0xf8ad328e98f85fccbf09e43b16dcbbda7e84beab) |
+| USDC_TOKEN  | [0x8A56FA4d0768c5f15C88E40D4256F41819AbaD56](https://neonscan.org/address/0x8A56FA4d0768c5f15C88E40D4256F41819AbaD56) |
+| WDAI_TOKEN  | [0x583E3F2A7a2F78F0ed2bB177563C3D26769e52Ea](https://neonscan.org/address/0x583E3F2A7a2F78F0ed2bB177563C3D26769e52Ea) |
+| USDT_TOKEN  | [0x5EFc3A6eD6FDA49702ffb1c65FB433387892b96d](https://neonscan.org/address/0x5EFc3A6eD6FDA49702ffb1c65FB433387892b96d)             |
 
-| Name                 | Address                                                                                                                            |
-|:---------------------|:-----------------------------------------------------------------------------------------------------------------------------------|
-| RemoteFactory          | TBD  |
-| RemoteRouter01         | TBD  |
-| BribeFactory         | TBD  |
-| GaugesFactory        | TBD  |
-| REMOTE                 | TBD  |
-| RemoteMinter           | TBD  |
-| RemoteVoter            | TBD  |
-| veREMOTE               | TBD  |
-| VeDist               | TBD  |
-| Controller           | TBD  |
+| Name                 | Address                                                                                                               |
+|:---------------------|:----------------------------------------------------------------------------------------------------------------------|
+| RemoteFactory          | [0xE452CDC71B9f488333fa9a999B421BaC0cD988fc](https://neonscan.org/address/0xE452CDC71B9f488333fa9a999B421BaC0cD988fc) |
+| RemoteRouter01         | [0x088286351671D1C50dAe1E50bA1Cb51ad62FfB65](https://neonscan.org/address/0x088286351671D1C50dAe1E50bA1Cb51ad62FfB65)                                                                                     |
+| BribeFactory         | [0x8bDd46A71c4819f275e46067166dDC21676c44a7](https://neonscan.org/address/0x8bDd46A71c4819f275e46067166dDC21676c44a7)                                                                                                                      |
+| GaugesFactory        | [0x848C5376aA96e00e2DF234382BEBc19ea902E75F](https://neonscan.org/address/0x848C5376aA96e00e2DF234382BEBc19ea902E75F)                                                                                                                      |
+| REMOTE                 | [0x063b205706d132a016F700CA97A35c6BC9E412AE](https://neonscan.org/address/0x063b205706d132a016F700CA97A35c6BC9E412AE)                                                                             |
+| RemoteMinter           | [0x3059d7762bc85a94949310e4fC4fAfe5638b9dbb](https://neonscan.org/address/0x3059d7762bc85a94949310e4fC4fAfe5638b9dbb)                                                                                                                      |
+| RemoteVoter            | [0x666C9CaA4EEB36998Bc93fa156A4ad320A21CcBb](https://neonscan.org/address/0x666C9CaA4EEB36998Bc93fa156A4ad320A21CcBb)                                                                                                                      |
+| veREMOTE               | [0xcA3De43EB81B8D18949B3cBd28Aaddf31214B4A6](https://neonscan.org/address/0xcA3De43EB81B8D18949B3cBd28Aaddf31214B4A6)                                                                                                                      |
+| VeDist               | [0x1BE438fdEF546acdb9CFdE511F5F8F3d4a9972c9](https://neonscan.org/address/0x1BE438fdEF546acdb9CFdE511F5F8F3d4a9972c9)                                                                                                                      |
+| Controller           | [0x811Ee1914CE3289c1F202E676B7500d92be8641f](https://neonscan.org/address/0x811Ee1914CE3289c1F202E676B7500d92be8641f)                                                                                                                      |
 
 ### Neon deployment
 

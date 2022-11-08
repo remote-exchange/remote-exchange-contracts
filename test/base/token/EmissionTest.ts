@@ -7,7 +7,7 @@ import {
   Gauge__factory,
   Multicall2,
   StakingRewards,
-  Token, Controller, Controller__factory
+  Token, Controller__factory
 } from "../../../typechain";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {ethers} from "hardhat";
@@ -20,7 +20,7 @@ import {Misc} from "../../../scripts/Misc";
 import {formatUnits, parseUnits} from "ethers/lib/utils";
 import {appendFileSync, writeFileSync} from "fs";
 import {BigNumber} from "ethers";
-import {BscTestnetAddresses} from "../../../scripts/addresses/BscTestnetAddresses";
+import {NeonDevnetAddresses} from "../../../scripts/addresses/NeonDevnetAddresses";
 
 const {expect} = chai;
 
@@ -58,8 +58,8 @@ describe("emission tests", function () {
 
     core = await Deploy.deployCore(
       owner,
-      BscTestnetAddresses.WBNB_TOKEN,
-      [BscTestnetAddresses.WBNB_TOKEN, ust.address, mim.address, dai.address],
+      NeonDevnetAddresses.WNATIVE_TOKEN,
+      [NeonDevnetAddresses.WNATIVE_TOKEN, ust.address, mim.address, dai.address],
       [owner.address, owner2.address],
       [amount100At18, amount100At18],
       amount100At18.mul(2)

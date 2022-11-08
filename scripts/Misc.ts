@@ -1,6 +1,5 @@
 import {ethers} from "hardhat";
 import {Logger} from "tslog";
-import Common from "ethereumjs-common";
 import logSettings from "../log_settings";
 import {BigNumber, ContractTransaction} from "ethers";
 
@@ -40,6 +39,9 @@ export class Misc {
     }
     log.info('transaction result', tr.hash, receipt?.status);
     log.info('gas used', receipt.gasUsed.toString());
+    if (receipt?.status !== 1 && !stopOnError) {
+      console.log('Tx error', receipt)
+    }
     if (receipt?.status !== 1 && stopOnError) {
       throw Error("Wrong status!");
     }

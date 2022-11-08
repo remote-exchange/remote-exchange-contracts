@@ -230,7 +230,7 @@ export class Deploy {
       minterClaimantsAmounts,
       minterSum,
       warmingUpPeriod
-    ));
+    ), false);
 
     return [
       controller,

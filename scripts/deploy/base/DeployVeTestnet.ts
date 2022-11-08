@@ -3,7 +3,6 @@ import {ethers} from "hardhat";
 import {Verify} from "../../Verify";
 import {Misc} from "../../Misc";
 import {BigNumber} from "ethers";
-import {BscTestnetAddresses} from "../../addresses/BscTestnetAddresses";
 import {writeFileSync} from "fs";
 import {parseUnits} from "ethers/lib/utils";
 

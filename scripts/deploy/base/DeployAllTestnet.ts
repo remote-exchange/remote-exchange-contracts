@@ -3,19 +3,16 @@ import {ethers} from "hardhat";
 import {Verify} from "../../Verify";
 import {Misc} from "../../Misc";
 import {BigNumber} from "ethers";
-import {BscTestnetAddresses} from "../../addresses/BscTestnetAddresses";
+import {NeonDevnetAddresses} from "../../addresses/NeonDevnetAddresses";
 import {writeFileSync} from "fs";
 import {parseUnits} from 'ethers/lib/utils';
-import {FujiAddresses} from '../../addresses/FujiAddresses';
 
 
 const voterTokens = [
-  BscTestnetAddresses.WBNB_TOKEN,
-  BscTestnetAddresses.USDC_TOKEN,
-  BscTestnetAddresses.MIM_TOKEN,
-  BscTestnetAddresses.DAI_TOKEN,
-  BscTestnetAddresses.USDT_TOKEN,
-  BscTestnetAddresses.MAI_TOKEN,
+  NeonDevnetAddresses.WNATIVE_TOKEN,
+  NeonDevnetAddresses.USDC_TOKEN,
+  NeonDevnetAddresses.DAI_TOKEN,
+  NeonDevnetAddresses.USDT_TOKEN,
 ];
 
 const claimants = [
@@ -45,7 +42,7 @@ async function main() {
     minterMax = minterMax.add(c);
   }
 
-  const core = await Deploy.deployCore(signer, BscTestnetAddresses.WBNB_TOKEN, voterTokens, claimants, claimantsAmounts, minterMax, 0)
+  const core = await Deploy.deployCore(signer, NeonDevnetAddresses.WNATIVE_TOKEN, voterTokens, claimants, claimantsAmounts, minterMax, 0)
 
   const data = ''
     + 'token: ' + core.token.address + '\n'
@@ -60,19 +57,19 @@ async function main() {
     + 'controller: ' + core.controller.address + '\n'
 
   console.log(data);
-  writeFileSync('tmp/core_testnet.txt', data);
+  writeFileSync('core_testnet.txt', data);
 
   await Misc.wait(5);
 
-  await Verify.verify(core.token.address);
-  await Verify.verify(core.gaugesFactory.address);
-  await Verify.verify(core.bribesFactory.address);
-  await Verify.verify(core.factory.address);
-  await Verify.verifyWithArgs(core.router.address, [core.factory.address, BscTestnetAddresses.WBNB_TOKEN]);
-  await Verify.verifyWithArgs(core.ve.address, [core.token.address]);
-  await Verify.verifyWithArgs(core.veDist.address, [core.ve.address]);
-  await Verify.verifyWithArgs(core.voter.address, [core.ve.address, core.factory.address, core.gaugesFactory.address, core.bribesFactory.address]);
-  await Verify.verifyWithArgs(core.minter.address, [core.ve.address, core.controller.address]);
+  // await Verify.verify(core.token.address);
+  // await Verify.verify(core.gaugesFactory.address);
+  // await Verify.verify(core.bribesFactory.address);
+  // await Verify.verify(core.factory.address);
+  // await Verify.verifyWithArgs(core.router.address, [core.factory.address, NeonDevnetAddresses.WBNB_TOKEN]);
+  // await Verify.verifyWithArgs(core.ve.address, [core.token.address]);
+  // await Verify.verifyWithArgs(core.veDist.address, [core.ve.address]);
+  // await Verify.verifyWithArgs(core.voter.address, [core.ve.address, core.factory.address, core.gaugesFactory.address, core.bribesFactory.address]);
+  // await Verify.verifyWithArgs(core.minter.address, [core.ve.address, core.controller.address]);
 
 }
 
