@@ -34,6 +34,10 @@ const claimantsAmounts = [
 ];
 
 async function main() {
+  const p = await ethers.provider
+  console.log('Network:', await p.getNetwork())
+  console.log('BlockNumber:', await p.getBlockNumber())
+
   const signer = (await ethers.getSigners())[0];
 
   let minterMax = BigNumber.from("0");
@@ -57,7 +61,7 @@ async function main() {
     + 'controller: ' + core.controller.address + '\n'
 
   console.log(data);
-  writeFileSync('core_testnet.txt', data);
+  writeFileSync('tmp/core_testnet.txt', data);
 
   await Misc.wait(5);
 

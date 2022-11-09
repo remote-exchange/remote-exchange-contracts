@@ -49,6 +49,10 @@ const argv = require('yargs/yargs')()
       type: "string",
       default: "b55c9fcc2c60993e5c539f37ffd27d2058e7f77014823b461323db5eba817518" // random account
     },
+    neonDevnetForkBlock: {
+      type: "number",
+      default: 174397848
+    },
     bscForkBlock: {
       type: "number",
       default: 0
@@ -67,16 +71,16 @@ export default {
       allowUnlimitedContractSize: true,
       chainId: !!argv.hardhatChainId ? argv.hardhatChainId : undefined,
       timeout: 99999 * 2,
-      gas: argv.hardhatChainId === 56 ? 19_000_000 :
+      gas: argv.hardhatChainId === 245022926 ? 19_000_000 :
         argv.hardhatChainId === 97 ? 19_000_000 :
           undefined,
       forking: !!argv.hardhatChainId && argv.hardhatChainId !== 31337 ? {
         url:
-          argv.hardhatChainId === 56 ? argv.bscRpcUrl :
+          argv.hardhatChainId === 245022926 ? argv.neonDevnetRpcUrl :
           argv.hardhatChainId === 97 ? argv.bscTestnetRpcUrl :
               undefined,
         blockNumber:
-          argv.hardhatChainId === 56 ? argv.bscForkBlock !== 0 ? argv.bscForkBlock : undefined :
+          argv.hardhatChainId === 245022926 ? argv.neonDevnetForkBlock !== 0 ? argv.neonDevnetForkBlock : undefined :
           argv.hardhatChainId === 97 ? argv.bscTestForkBlock !== 0 ? argv.bscTestForkBlock : undefined :
               undefined
       } : undefined,
