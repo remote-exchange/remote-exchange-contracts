@@ -25,6 +25,10 @@ const argv = require('yargs/yargs')()
       type: "string",
       default: 'https://devnet.neonevm.org'
     },
+    goerliRpcUrl: {
+      type: "string",
+      default: 'https://rpc.ankr.com/eth_goerli'
+    },
     bscRpcUrl: {
       type: "string",
       default: ''
@@ -98,6 +102,12 @@ export default {
       network_id: 245022926,
       accounts: [argv.privateKey],
       // gasPrice: 138_699_406_200
+    },
+    goerli: {
+      url: argv.goerliRpcUrl,
+      timeout: 99999,
+      chainId: 5,
+      accounts: [argv.privateKey],
     },
     bsc: {
       url: argv.bscRpcUrl,
