@@ -238,18 +238,18 @@ export class Deploy {
       await Misc.delay(10_000);
     }
 
-    await Misc.runAndWait(() => token.setMinter(minter.address));
-    await Misc.runAndWait(() => veDist.setDepositor(minter.address));
-    await Misc.runAndWait(() => controller.setVeDist(veDist.address));
-    await Misc.runAndWait(() => controller.setVoter(voter.address));
+    await Misc.runAndWait(() => token.setMinter(minter.address), true, delays);
+    await Misc.runAndWait(() => veDist.setDepositor(minter.address), true, delays);
+    await Misc.runAndWait(() => controller.setVeDist(veDist.address), true, delays);
+    await Misc.runAndWait(() => controller.setVoter(voter.address), true, delays);
 
-    await Misc.runAndWait(() => voter.initialize(voterTokens, minter.address));
+    await Misc.runAndWait(() => voter.initialize(voterTokens, minter.address), true, delays);
     await Misc.runAndWait(() => minter.initialize(
       minterClaimants,
       minterClaimantsAmounts,
       minterSum,
       warmingUpPeriod
-    ), false);
+    ), false, delays);
 
     return [
       controller,

@@ -172,7 +172,8 @@ async function depositToGauge(
     token1,
     utils.parseUnits('1'),
     utils.parseUnits('1', 6),
-    true
+    true,
+      false
   );
   const pairAdr = await core.factory.getPair(token0, token1, true)
   const pair = RemotePair__factory.connect(pairAdr, owner);
