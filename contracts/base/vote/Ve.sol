@@ -89,6 +89,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     uint ts
   );
   event Withdraw(address indexed provider, uint tokenId, uint value, uint ts);
+  event CreateLockWithRef(uint indexed referrerTokenId, uint indexed referralTokenId);
 
   /// @notice Contract constructor
   /// @param token_ `ERC20CRV` token address
@@ -667,6 +668,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     if (_ref != 0) {
       require(balanceOfNFT(_ref) >= totalSupply() / 100, 'Need 1% referrer ve balance');
       ref[_tokenId] = _ref;
+      emit CreateLockWithRef(_ref, _tokenId);
     }
 
     _depositFor(_tokenId, _value, unlockTime, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);

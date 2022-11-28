@@ -62,6 +62,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
   event Withdraw(address indexed from, uint amount);
   event NotifyReward(address indexed from, address indexed reward, uint amount);
   event ClaimRewards(address indexed from, address indexed reward, uint amount, address recepient);
+  event ClaimRefRewards(address indexed referrer, address indexed reward, uint amount, address referral);
 
   constructor(address _stake, address _operator, address[] memory _allowedRewardTokens) {
     underlying = _stake;
@@ -204,6 +205,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
           uint _refReward = _reward * 3 / 100;
           _reward -= _refReward;
           IERC20(tokens[i]).safeTransfer(refAddress, _refReward);
+          emit ClaimRefRewards(refAddress, tokens[i], _refReward, recipient);
         }
 
         IERC20(tokens[i]).safeTransfer(recipient, _reward);
