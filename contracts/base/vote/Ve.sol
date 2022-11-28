@@ -45,7 +45,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   uint8 constant public decimals = 18;
 
   /// @dev Current count of token
-  uint internal tokenId;
+  uint public tokenId;
 
   /// @dev Mapping from NFT ID to the address that owns it.
   mapping(uint => address) internal idToOwner;
@@ -78,7 +78,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   bytes4 internal constant ERC721_METADATA_INTERFACE_ID = 0x5b5e139f;
 
   /// @dev Mapping from NFT ID to referrer NFT ID
-  mapping(uint => uint) internal ref;
+  mapping(uint => uint) public ref;
 
   event Deposit(
     address indexed provider,
@@ -665,7 +665,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     uint _tokenId = tokenId;
     _mint(_to, _tokenId);
     if (_ref != 0) {
-      require(_balanceOfNFT(_ref, block.timestamp) >= totalSupply() / 100, 'Need 1% referrer ve balance');
+      require(balanceOfNFT(_ref) >= totalSupply() / 100, 'Need 1% referrer ve balance');
       ref[_tokenId] = _ref;
     }
 
@@ -802,7 +802,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     );
   }
 
-  function balanceOfNFT(uint _tokenId) external view override returns (uint) {
+  function balanceOfNFT(uint _tokenId) public view override returns (uint) {
     // flash NFT protection
     if (ownershipChange[_tokenId] == block.number) {
       return 0;
@@ -958,9 +958,5 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
 
   function refId(uint _tokenId) external view returns (uint) {
     return ref[_tokenId];
-  }
-
-  function nftSupply() public view returns (uint) {
-    return tokenId;
   }
 }

@@ -142,18 +142,14 @@ describe("referrals test", function () {
 
     const reward1 = await gaugeMimUst.earned(core.token.address, owner4.address);
     const reward2 = await gaugeMimUst.earned(core.token.address, owner5.address);
-    const refReward1 = await gaugeMimUst.refEarned(core.token.address, 2);
 
     console.log("Earned for NFT with referrer", formatUnits(reward1));
     console.log("Earned for NFT without referrer", formatUnits(reward2));
-    console.log("Referrer earned", formatUnits(refReward1));
 
     await gaugeMimUst.connect(owner4).getReward(owner4.address, [core.token.address]);
     expect(await gaugeMimUst.earned(core.token.address, owner4.address)).to.eq(0)
     await gaugeMimUst.connect(owner5).getReward(owner5.address, [core.token.address]);
     expect(await gaugeMimUst.earned(core.token.address, owner5.address)).to.eq(0)
-    await gaugeMimUst.connect(owner2).getRefReward(2, [core.token.address]);
-    expect(await gaugeMimUst.refEarned(core.token.address, 2)).to.eq(0)
 
     // todo: cover max boost limit
   });

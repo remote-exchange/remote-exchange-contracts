@@ -27,7 +27,6 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
   event ClaimFees(address indexed from, uint claimed0, uint claimed1);
   event VeTokenLocked(address indexed account, uint tokenId);
   event VeTokenUnlocked(address indexed account, uint tokenId);
-  event ClaimRefRewards(address indexed account, address indexed token, uint amount);
 
   constructor(
     address _stake,
@@ -78,7 +77,12 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
   function getReward(address account, address[] memory tokens) external override {
     require(msg.sender == account || msg.sender == voter, "Forbidden");
     IVoter(voter).distribute(address(this));
-    _getReward(account, tokens, account, IVe(ve).refId(tokenIds[account]));
+    uint refId = IVe(ve).ref(tokenIds[account]);
+    address refAddress = address (0);
+    if (refId != 0) {
+      refAddress = IERC721(ve).ownerOf(refId);
+    }
+    _getReward(account, tokens, account, refAddress);
   }
 
   function depositAll(uint tokenId) external {
@@ -145,8 +149,8 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
     }
 
     /// @dev Increase boost by 10% for NFT with referrer
-    if (IVe(ve).refId(_tokenId) != 0 && _derived > 0) {
-      _adjusted += _derived * 10 * (_adjusted + _derived) / _derived / 100;
+    if (IVe(ve).ref(_tokenId) != 0 && _derived > 0) {
+      _adjusted += _derived / 10;
       if (_adjusted > _balance * 60 / 100) {
         _adjusted = _balance * 60 / 100;
       }
@@ -162,35 +166,10 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
   }
 
   function earned(address token, address account) external view override returns (uint) {
-    if (IVe(ve).refId(tokenIds[account]) != 0) {
+    if (IVe(ve).ref(tokenIds[account]) != 0) {
       return _earned(token, account) * 97 / 100;
     }
 
     return _earned(token, account);
-  }
-
-  function refEarned(address token, uint tokenId) public view returns (uint) {
-    uint _veSupply = IVe(ve).nftSupply();
-    uint __earned = refRewardsFromClaimedPerToken[token][tokenId];
-    for (uint i; i < _veSupply; i++) {
-      if (IVe(ve).refId(i) == tokenId) {
-        __earned += _earned(token, IERC721(ve).ownerOf(i)) * 3 / 100;
-      }
-    }
-
-    __earned -= refRewardsReceivedPerToken[token][tokenId];
-
-    return __earned;
-  }
-
-  function getRefReward(uint tokenId, address[] memory tokens) external {
-    require(IERC721(ve).ownerOf(tokenId) == msg.sender, "Only token owner");
-
-    for (uint i = 0; i < tokens.length; i++) {
-      uint _reward = refEarned(tokens[i], tokenId);
-      IERC20(tokens[i]).safeTransfer(msg.sender, _reward);
-      refRewardsReceivedPerToken[tokens[i]][tokenId] += _reward;
-      emit ClaimRefRewards(msg.sender, tokens[i], _reward);
-    }
   }
 }

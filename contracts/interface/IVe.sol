@@ -55,7 +55,5 @@ interface IVe {
 
   function abstain(uint tokenId) external;
 
-  function refId(uint tokenId) external view returns (uint);
-
-  function nftSupply() external view returns (uint);
+  function ref(uint tokenId) external view returns (uint);
 }

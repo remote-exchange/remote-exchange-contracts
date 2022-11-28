@@ -39,7 +39,7 @@ contract MultiRewardsPoolMock is MultiRewardsPoolBase {
 
   function getReward(address account, address[] memory tokens) external {
     require(msg.sender == account, "Forbidden");
-    _getReward(account, tokens, account, 0);
+    _getReward(account, tokens, account, address (0));
   }
 
   function notifyRewardAmount(address token, uint amount) external {

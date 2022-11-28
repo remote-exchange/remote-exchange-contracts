@@ -38,8 +38,6 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
 
   mapping(address => mapping(address => uint)) public lastEarn;
   mapping(address => mapping(address => uint)) public userRewardPerTokenStored;
-  mapping(address => mapping(uint => uint)) public refRewardsFromClaimedPerToken;
-  mapping(address => mapping(uint => uint)) public refRewardsReceivedPerToken;
 
   uint public override totalSupply;
   mapping(address => uint) public override balanceOf;
@@ -192,7 +190,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
   }
 
   /// @dev Implement restriction checks!
-  function _getReward(address account, address[] memory tokens, address recipient, uint refId) internal lock virtual {
+  function _getReward(address account, address[] memory tokens, address recipient, address refAddress) internal lock virtual {
 
     for (uint i = 0; i < tokens.length; i++) {
       (rewardPerTokenStored[tokens[i]], lastUpdateTime[tokens[i]]) = _updateRewardPerToken(tokens[i], type(uint).max, true);
@@ -202,10 +200,10 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
       userRewardPerTokenStored[tokens[i]][account] = rewardPerTokenStored[tokens[i]];
       if (_reward > 0) {
         /// @dev Extract ref reward 3%
-        if (refId != 0) {
+        if (refAddress != address (0)) {
           uint _refReward = _reward * 3 / 100;
           _reward -= _refReward;
-          refRewardsFromClaimedPerToken[tokens[i]][refId] += _refReward;
+          IERC20(tokens[i]).safeTransfer(refAddress, _refReward);
         }
 
         IERC20(tokens[i]).safeTransfer(recipient, _reward);
