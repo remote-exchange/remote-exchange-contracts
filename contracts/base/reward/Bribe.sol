@@ -27,14 +27,14 @@ contract Bribe is IBribe, MultiRewardsPoolBase {
 
   function getReward(uint tokenId, address[] memory tokens) external {
     require(IVe(ve).isApprovedOrOwner(msg.sender, tokenId), "Not token owner");
-    _getReward(_tokenIdToAddress(tokenId), tokens, msg.sender);
+    _getReward(_tokenIdToAddress(tokenId), tokens, msg.sender, 0);
   }
 
   /// @dev Used by Voter to allow batched reward claims
   function getRewardForOwner(uint tokenId, address[] memory tokens) external override {
     require(msg.sender == voter, "Not voter");
     address owner = IERC721(ve).ownerOf(tokenId);
-    _getReward(_tokenIdToAddress(tokenId), tokens, owner);
+    _getReward(_tokenIdToAddress(tokenId), tokens, owner, 0);
   }
 
   /// @dev This is an external function, but internal notation is used

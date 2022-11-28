@@ -91,7 +91,7 @@ contract RemoteMinter is IMinter {
     token.approve(address(ve), type(uint).max);
     uint sum;
     for (uint i = 0; i < claimants.length; i++) {
-      ve.createLockFor(amounts[i], _LOCK_PERIOD, claimants[i]);
+      ve.createLockFor(amounts[i], _LOCK_PERIOD, claimants[i], 0);
       sum += amounts[i];
     }
     require(sum == totalAmount, "Wrong totalAmount");

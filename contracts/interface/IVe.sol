@@ -33,7 +33,7 @@ interface IVe {
 
   function isApprovedOrOwner(address, uint) external view returns (bool);
 
-  function createLockFor(uint, uint, address) external returns (uint);
+  function createLockFor(uint, uint, address, uint) external returns (uint);
 
   function userPointEpoch(uint tokenId) external view returns (uint);
 
@@ -54,4 +54,8 @@ interface IVe {
   function voting(uint tokenId) external;
 
   function abstain(uint tokenId) external;
+
+  function refId(uint tokenId) external view returns (uint);
+
+  function nftSupply() external view returns (uint);
 }

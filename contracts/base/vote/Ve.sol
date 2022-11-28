@@ -77,6 +77,9 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   /// @dev ERC165 interface ID of ERC721Metadata
   bytes4 internal constant ERC721_METADATA_INTERFACE_ID = 0x5b5e139f;
 
+  /// @dev Mapping from NFT ID to referrer NFT ID
+  mapping(uint => uint) internal ref;
+
   event Deposit(
     address indexed provider,
     uint tokenId,
@@ -650,7 +653,8 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   /// @param _value Amount to deposit
   /// @param _lockDuration Number of seconds to lock tokens for (rounded down to nearest week)
   /// @param _to Address to deposit
-  function _createLock(uint _value, uint _lockDuration, address _to) internal returns (uint) {
+  /// @param _ref Referrer NFT ID
+  function _createLock(uint _value, uint _lockDuration, address _to, uint _ref) internal returns (uint) {
     require(_value > 0, "zero value");
     // Lock time is rounded down to weeks
     uint unlockTime = (block.timestamp + _lockDuration) / WEEK * WEEK;
@@ -660,6 +664,10 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     ++tokenId;
     uint _tokenId = tokenId;
     _mint(_to, _tokenId);
+    if (_ref != 0) {
+      require(_balanceOfNFT(_ref, block.timestamp) >= totalSupply() / 100, 'Need 1% referrer ve balance');
+      ref[_tokenId] = _ref;
+    }
 
     _depositFor(_tokenId, _value, unlockTime, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);
     return _tokenId;
@@ -669,16 +677,18 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   /// @param _value Amount to deposit
   /// @param _lockDuration Number of seconds to lock tokens for (rounded down to nearest week)
   /// @param _to Address to deposit
-  function createLockFor(uint _value, uint _lockDuration, address _to)
-  external lock override returns (uint) {
-    return _createLock(_value, _lockDuration, _to);
+  /// @param _ref Referrer NFT ID
+  function createLockFor(uint _value, uint _lockDuration, address _to, uint _ref)
+  external lock returns (uint) {
+    return _createLock(_value, _lockDuration, _to, _ref);
   }
 
   /// @notice Deposit `_value` tokens for `msg.sender` and lock for `_lock_duration`
   /// @param _value Amount to deposit
   /// @param _lockDuration Number of seconds to lock tokens for (rounded down to nearest week)
-  function createLock(uint _value, uint _lockDuration) external lock returns (uint) {
-    return _createLock(_value, _lockDuration, msg.sender);
+  /// @param _ref Referrer NFT ID
+  function createLock(uint _value, uint _lockDuration, uint _ref) external lock returns (uint) {
+    return _createLock(_value, _lockDuration, msg.sender, _ref);
   }
 
   /// @notice Deposit `_value` additional tokens for `_tokenId` without modifying the unlock time
@@ -892,7 +902,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     return _supplyAt(lastPoint, t);
   }
 
-  function totalSupply() external view returns (uint) {
+  function totalSupply() public view returns (uint) {
     return totalSupplyAtT(block.timestamp);
   }
 
@@ -944,5 +954,13 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
 
   function pointHistory(uint _loc) external view override returns (Point memory) {
     return _pointHistory[_loc];
+  }
+
+  function refId(uint _tokenId) external view returns (uint) {
+    return ref[_tokenId];
+  }
+
+  function nftSupply() public view returns (uint) {
+    return tokenId;
   }
 }
