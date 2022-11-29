@@ -153,6 +153,17 @@ function vote(address[] calldata _poolVote, uint[] calldata _weights) external
 function distribute(address token) external
 ```
 
+### Referral program
+
+When you create an NFT, you can set another NFT id as a referral if you set the referral ID you will have:
+
+- +10% to your boost in a gauge but no more than x2.5
+
+However, for this bonus, you will send a part of your profit (3%) to the referral.
+If a user did not set the referral id, everything as usual. 
+
+Also, an NFT for referral should have at least 1% of the current circulation supply at the moment of referral setup.
+
 ### veREMOTE distribution recipients
 
 | Name | Address | Qty |

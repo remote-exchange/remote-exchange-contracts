@@ -62,6 +62,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
   event Withdraw(address indexed from, uint amount);
   event NotifyReward(address indexed from, address indexed reward, uint amount);
   event ClaimRewards(address indexed from, address indexed reward, uint amount, address recepient);
+  event ClaimRefRewards(address indexed referrer, address indexed reward, uint amount, address referral);
 
   constructor(address _stake, address _operator, address[] memory _allowedRewardTokens) {
     underlying = _stake;
@@ -112,7 +113,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
     return _remaining * rewardRate[token] / PRECISION;
   }
 
-  function earned(address token, address account) external view override returns (uint) {
+  function earned(address token, address account) external view virtual override returns (uint) {
     return _earned(token, account);
   }
 
@@ -190,7 +191,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
   }
 
   /// @dev Implement restriction checks!
-  function _getReward(address account, address[] memory tokens, address recipient) internal lock virtual {
+  function _getReward(address account, address[] memory tokens, address recipient, address refAddress) internal lock virtual {
 
     for (uint i = 0; i < tokens.length; i++) {
       (rewardPerTokenStored[tokens[i]], lastUpdateTime[tokens[i]]) = _updateRewardPerToken(tokens[i], type(uint).max, true);
@@ -199,6 +200,14 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
       lastEarn[tokens[i]][account] = block.timestamp;
       userRewardPerTokenStored[tokens[i]][account] = rewardPerTokenStored[tokens[i]];
       if (_reward > 0) {
+        /// @dev Extract ref reward 3%
+        if (refAddress != address (0)) {
+          uint _refReward = _reward * 3 / 100;
+          _reward -= _refReward;
+          IERC20(tokens[i]).safeTransfer(refAddress, _refReward);
+          emit ClaimRefRewards(refAddress, tokens[i], _refReward, recipient);
+        }
+
         IERC20(tokens[i]).safeTransfer(recipient, _reward);
       }
 
@@ -245,6 +254,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
         CheckpointLib.Checkpoint memory cp1 = checkpoints[account][i + 1];
         (uint _rewardPerTokenStored0,) = _getPriorRewardPerToken(token, cp0.timestamp);
         (uint _rewardPerTokenStored1,) = _getPriorRewardPerToken(token, cp1.timestamp);
+
         reward += cp0.value * (_rewardPerTokenStored1 - _rewardPerTokenStored0) / PRECISION;
       }
     }

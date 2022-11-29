@@ -38,7 +38,7 @@ describe("ve dist tests", function () {
 
     await wmatic.approve(ve.address, parseUnits('10000'))
     await wmatic.connect(owner2).approve(ve.address, parseUnits('10000'))
-    await ve.createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4);
+    await ve.createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4, 0);
 
     helper = await Deploy.deployContract(owner, 'ContractTestHelper') as ContractTestHelper;
   });
@@ -127,7 +127,7 @@ describe("ve dist tests", function () {
     const controller = await Deploy.deployContract(owner, 'Controller') as Controller;
     const ve1 = await Deploy.deployVe(owner, wmatic.address, controller.address);
     await wmatic.approve(ve1.address, parseUnits('10000'))
-    await ve1.createLock(parseUnits('1'), 60 * 60 * 24 * 14);
+    await ve1.createLock(parseUnits('1'), 60 * 60 * 24 * 14, 0);
     await TimeUtils.advanceBlocksOnTs(WEEK * 2);
     const veDist1 = await Deploy.deployVeDist(owner, ve.address);
 
@@ -140,7 +140,7 @@ describe("ve dist tests", function () {
     const controller = await Deploy.deployContract(owner, 'Controller') as Controller;
     const ve1 = await Deploy.deployVe(owner, wmatic.address, controller.address);
     await wmatic.approve(ve1.address, parseUnits('10000'))
-    await ve1.createLock(parseUnits('1'), 60 * 60 * 24 * 14);
+    await ve1.createLock(parseUnits('1'), 60 * 60 * 24 * 14, 0);
     await TimeUtils.advanceBlocksOnTs(WEEK * 2);
     const veDist1 = await Deploy.deployVeDist(owner, ve.address);
 
@@ -150,7 +150,7 @@ describe("ve dist tests", function () {
   });
 
   it("claim with rewards test", async function () {
-    await ve.createLock(WEEK * 2, 60 * 60 * 24 * 365 * 4);
+    await ve.createLock(WEEK * 2, 60 * 60 * 24 * 365 * 4, 0);
 
     await TimeUtils.advanceBlocksOnTs(WEEK * 2);
 
@@ -161,8 +161,8 @@ describe("ve dist tests", function () {
   });
 
   it("claim complex test", async function () {
-    await ve.createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4);
-    await ve.connect(owner2).createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4);
+    await ve.createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4, 0);
+    await ve.connect(owner2).createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4, 0);
 
     await TimeUtils.advanceBlocksOnTs(WEEK * 2);
 
@@ -222,7 +222,7 @@ describe("ve dist tests", function () {
   });
 
   it("claim without checkpoints after the launch should return zero", async function () {
-    await ve.createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4);
+    await ve.createLock(parseUnits('1'), 60 * 60 * 24 * 365 * 4, 0);
     const maxUserEpoch = await ve.userPointEpoch(2)
     const startTime = await veDist.startTime();
     let weekCursor = await veDist.timeCursorOf(2);
@@ -244,7 +244,7 @@ describe("ve dist tests", function () {
   });
 
   it("claim with rewards with minimal possible amount and lock", async function () {
-    await ve.createLock(4 * 365 * 86400, WEEK);
+    await ve.createLock(4 * 365 * 86400, WEEK, 0);
 
     await TimeUtils.advanceBlocksOnTs(WEEK * 2);
     await wmatic.transfer(veDist.address, parseUnits('1'));
@@ -315,7 +315,7 @@ describe("ve dist tests", function () {
   });
 
   it("claimMany on old block test", async function () {
-    await ve.createLock(4 * 365 * 86400, WEEK);
+    await ve.createLock(4 * 365 * 86400, WEEK, 0);
     await veDist.claimMany([1, 2, 0]);
   });
 

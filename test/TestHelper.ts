@@ -26,14 +26,15 @@ export class TestHelper {
     tokenB: string,
     tokenAAmount: BigNumber,
     tokenBAmount: BigNumber,
-    stable: boolean
+    stable: boolean,
+    wait: boolean = true
   ) {
     console.log('start add liquidity', tokenA, tokenB)
     TestHelper.gte(await IERC20__factory.connect(tokenA, owner).balanceOf(owner.address), tokenAAmount);
     TestHelper.gte(await IERC20__factory.connect(tokenB, owner).balanceOf(owner.address), tokenBAmount);
-    await Misc.runAndWait(() => IERC20__factory.connect(tokenA, owner).approve(router.address, tokenAAmount));
-    await Misc.runAndWait(() => IERC20__factory.connect(tokenB, owner).approve(router.address, tokenBAmount));
-    await Misc.runAndWait(() => router.connect(owner).addLiquidity(tokenA, tokenB, stable, tokenAAmount, tokenBAmount, 0, 0, owner.address, Date.now() + 99999999));
+    await Misc.runAndWait(() => IERC20__factory.connect(tokenA, owner).approve(router.address, tokenAAmount), true, wait);
+    await Misc.runAndWait(() => IERC20__factory.connect(tokenB, owner).approve(router.address, tokenBAmount), true, wait);
+    await Misc.runAndWait(() => router.connect(owner).addLiquidity(tokenA, tokenB, stable, tokenAAmount, tokenBAmount, 0, 0, owner.address, Date.now() + 99999999), true, wait);
     const address = await factory.getPair(tokenA, tokenB, stable);
     console.log('liquidity added', address);
     return RemotePair__factory.connect(address, owner);

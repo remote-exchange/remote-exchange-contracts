@@ -137,7 +137,7 @@ describe("ve tests", function () {
   });
 
   it("mint to zero dst revert test", async function () {
-    await expect(core.ve.createLockFor(1, 60 * 60 * 24 * 365, Misc.ZERO_ADDRESS)).revertedWith('zero dst')
+    await expect(core.ve.createLockFor(1, 60 * 60 * 24 * 365, Misc.ZERO_ADDRESS, 0)).revertedWith('zero dst')
   });
 
   it("voting revert", async function () {
@@ -188,15 +188,15 @@ describe("ve tests", function () {
   });
 
   it("create lock zero value revert", async function () {
-    await expect(core.ve.createLock(0, 1)).revertedWith('zero value')
+    await expect(core.ve.createLock(0, 1, 0)).revertedWith('zero value')
   });
 
   it("create lock zero period revert", async function () {
-    await expect(core.ve.createLock(1, 0)).revertedWith('Can only lock until time in the future')
+    await expect(core.ve.createLock(1, 0, 0)).revertedWith('Can only lock until time in the future')
   });
 
   it("create lock too big period revert", async function () {
-    await expect(core.ve.createLock(1, 1e12)).revertedWith('Voting lock can be 4 years max')
+    await expect(core.ve.createLock(1, 1e12, 0)).revertedWith('Voting lock can be 4 years max')
   });
 
   it("increaseAmount not owner revert", async function () {

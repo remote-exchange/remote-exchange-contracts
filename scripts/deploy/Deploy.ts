@@ -143,7 +143,8 @@ export class Deploy {
     minterClaimants: string[],
     minterClaimantsAmounts: BigNumber[],
     minterSum: BigNumber,
-    warmingUpPeriod = 2
+    warmingUpPeriod = 2,
+    delays: boolean = true
   ) {
     const [baseFactory, router] = await Deploy.deployDex(signer, networkToken);
 
@@ -164,6 +165,7 @@ export class Deploy {
       minterSum,
       baseFactory.address,
       warmingUpPeriod,
+      delays
     );
 
     return new CoreAddresses(
@@ -199,38 +201,55 @@ export class Deploy {
     minterSum: BigNumber,
     baseFactory: string,
     warmingUpPeriod: number,
+    delays: boolean = true
   ) {
     const controller = await Deploy.deployContract(signer, 'Controller') as Controller;
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
     const token = await Deploy.deployRemote(signer);
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
     const ve = await Deploy.deployVe(signer, token.address, controller.address);
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
     const gaugesFactory = await Deploy.deployGaugeFactory(signer);
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
     const bribesFactory = await Deploy.deployBribeFactory(signer);
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
 
 
     const veDist = await Deploy.deployVeDist(signer, ve.address);
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
     const voter = await Deploy.deployRemoteVoter(signer, ve.address, baseFactory, gaugesFactory.address, bribesFactory.address);
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
     const minter = await Deploy.deployRemoteMinter(signer, ve.address, controller.address);
-    await Misc.delay(10_000);
+    if (delays) {
+      await Misc.delay(10_000);
+    }
 
-    await Misc.runAndWait(() => token.setMinter(minter.address));
-    await Misc.runAndWait(() => veDist.setDepositor(minter.address));
-    await Misc.runAndWait(() => controller.setVeDist(veDist.address));
-    await Misc.runAndWait(() => controller.setVoter(voter.address));
+    await Misc.runAndWait(() => token.setMinter(minter.address), true, delays);
+    await Misc.runAndWait(() => veDist.setDepositor(minter.address), true, delays);
+    await Misc.runAndWait(() => controller.setVeDist(veDist.address), true, delays);
+    await Misc.runAndWait(() => controller.setVoter(voter.address), true, delays);
 
-    await Misc.runAndWait(() => voter.initialize(voterTokens, minter.address));
+    await Misc.runAndWait(() => voter.initialize(voterTokens, minter.address), true, delays);
     await Misc.runAndWait(() => minter.initialize(
       minterClaimants,
       minterClaimantsAmounts,
       minterSum,
       warmingUpPeriod
-    ), false);
+    ), false, delays);
 
     return [
       controller,

@@ -87,7 +87,7 @@ describe("base old tests", function () {
 
   it("create lock", async function () {
     await ve_underlying.approve(ve.address, ethers.BigNumber.from("500000000000000000"));
-    await ve.createLock(ethers.BigNumber.from("500000000000000000"), 4 * 365 * 86400);
+    await ve.createLock(ethers.BigNumber.from("500000000000000000"), 4 * 365 * 86400, 0);
     expect(await ve.balanceOfNFT(1)).to.above(ethers.BigNumber.from("495063075414519385"));
     expect(await ve_underlying.balanceOf(ve.address)).to.be.equal(ethers.BigNumber.from("500000000000000000"));
   });
@@ -119,7 +119,7 @@ describe("base old tests", function () {
 
   it("ve merge", async function () {
     await ve_underlying.approve(ve.address, ethers.BigNumber.from("1000000000000000000"));
-    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400);
+    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400, 0);
     expect(await ve.balanceOfNFT(2)).to.above(ethers.BigNumber.from("995063075414519385"));
     expect(await ve_underlying.balanceOf(ve.address)).to.be.equal(ethers.BigNumber.from("2000000000000000000"));
     console.log(await ve.totalSupply());
@@ -130,7 +130,7 @@ describe("base old tests", function () {
     expect((await ve.locked(2)).amount).to.equal(ethers.BigNumber.from("0"));
     expect(await ve.ownerOf(2)).to.equal('0x0000000000000000000000000000000000000000');
     await ve_underlying.approve(ve.address, ethers.BigNumber.from("1000000000000000000"));
-    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400);
+    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400, 0);
     expect(await ve.balanceOfNFT(3)).to.above(ethers.BigNumber.from("995063075414519385"));
     expect(await ve_underlying.balanceOf(ve.address)).to.be.equal(ethers.BigNumber.from("3000000000000000000"));
     console.log(await ve.totalSupply());
@@ -504,7 +504,7 @@ describe("base old tests", function () {
 
   it("create lock 2", async function () {
     await ve_underlying.approve(ve.address, ethers.BigNumber.from("1000000000000000000"));
-    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400);
+    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400, 0);
     expect(await ve.balanceOfNFT(1)).to.above(ethers.BigNumber.from("995063075414519385"));
     expect(await ve_underlying.balanceOf(ve.address)).to.be.equal(ethers.BigNumber.from("4000000000000000000"));
   });
@@ -531,7 +531,7 @@ describe("base old tests", function () {
   it("gauge vote & bribe balanceOf", async function () {
     // await TimeUtils.advanceBlocksOnTs(60 * 60 * 24 * 7);
     await ve_underlying.approve(ve.address, ethers.BigNumber.from("1000000000000000000"));
-    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400);
+    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400, 0);
     await voter.vote(5, [pair.address, pair2.address], [5000, 5000]);
     await voter.vote(4, [pair.address, pair2.address], [500000, 500000]);
     console.log(await voter.usedWeights(1));
@@ -551,7 +551,7 @@ describe("base old tests", function () {
   it("vote hacking break mint", async function () {
     // await TimeUtils.advanceBlocksOnTs(60 * 60 * 24 * 7);
     await ve_underlying.approve(ve.address, ethers.BigNumber.from("1000000000000000000"));
-    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400);
+    await ve.createLock(ethers.BigNumber.from("1000000000000000000"), 4 * 365 * 86400, 0);
     await voter.vote(6, [pair.address], [5000]);
 
     expect(await voter.usedWeights(6)).to.closeTo((await ve.balanceOfNFT(6)), 1000);

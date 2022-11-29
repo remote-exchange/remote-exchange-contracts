@@ -77,7 +77,12 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
   function getReward(address account, address[] memory tokens) external override {
     require(msg.sender == account || msg.sender == voter, "Forbidden");
     IVoter(voter).distribute(address(this));
-    _getReward(account, tokens, account);
+    uint refId = IVe(ve).ref(tokenIds[account]);
+    address refAddress = address (0);
+    if (refId != 0) {
+      refAddress = IERC721(ve).ownerOf(refId);
+    }
+    _getReward(account, tokens, account, refAddress);
   }
 
   function depositAll(uint tokenId) external {
@@ -142,6 +147,15 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
     if (account == IERC721(ve).ownerOf(_tokenId) && _supply > 0) {
       _adjusted = (totalSupply * IVe(ve).balanceOfNFT(_tokenId) / _supply) * 60 / 100;
     }
+
+    /// @dev Increase boost by 10% for NFT with referrer
+    if (IVe(ve).ref(_tokenId) != 0 && _derived > 0) {
+      _adjusted += _derived / 10;
+      if (_adjusted > _balance * 60 / 100) {
+        _adjusted = _balance * 60 / 100;
+      }
+    }
+
     return Math.min((_derived + _adjusted), _balance);
   }
 
@@ -151,4 +165,11 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
     _notifyRewardAmount(token, amount);
   }
 
+  function earned(address token, address account) external view override returns (uint) {
+    if (IVe(ve).ref(tokenIds[account]) != 0) {
+      return _earned(token, account) * 97 / 100;
+    }
+
+    return _earned(token, account);
+  }
 }
