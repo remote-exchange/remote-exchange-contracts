@@ -46,7 +46,9 @@ describe("token tests", function () {
       [wmatic.address, ust.address, mim.address, dai.address],
       [owner.address, owner2.address],
       [utils.parseUnits('100'), utils.parseUnits('100')],
-      utils.parseUnits('200')
+      utils.parseUnits('200'),
+        2,
+        false
     );
   });
 

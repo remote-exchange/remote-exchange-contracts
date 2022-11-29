@@ -68,7 +68,8 @@ describe("gauge and bribe tests", function () {
       [owner.address, owner2.address, owner.address],
       [utils.parseUnits('100'), utils.parseUnits('100'), BigNumber.from(100)],
       utils.parseUnits('200').add(100),
-      2
+      2,
+        false
     );
 
     mimUstPair = await TestHelper.addLiquidity(

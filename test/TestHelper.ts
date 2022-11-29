@@ -27,7 +27,7 @@ export class TestHelper {
     tokenAAmount: BigNumber,
     tokenBAmount: BigNumber,
     stable: boolean,
-    wait: boolean = true
+    wait: boolean = false
   ) {
     console.log('start add liquidity', tokenA, tokenB)
     TestHelper.gte(await IERC20__factory.connect(tokenA, owner).balanceOf(owner.address), tokenAAmount);

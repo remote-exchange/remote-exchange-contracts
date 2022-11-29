@@ -57,7 +57,9 @@ describe("ve tests", function () {
       [NeonDevnetAddresses.WNATIVE_TOKEN, ust.address, mim.address, dai.address],
       [owner.address, owner2.address],
       [parseUnits('100'), parseUnits('100')],
-      parseUnits('200')
+      parseUnits('200'),
+        2,
+        false
     );
 
     // -------------- create pairs ---------------------

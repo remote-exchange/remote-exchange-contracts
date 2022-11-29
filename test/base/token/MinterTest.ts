@@ -40,7 +40,8 @@ describe("minter tests", function () {
       [owner.address, owner2.address],
       [utils.parseUnits('100'), utils.parseUnits('100')],
       utils.parseUnits('200'),
-      2
+      2,
+        false
     );
 
     // ------------- setup gauges and bribes --------------

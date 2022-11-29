@@ -62,7 +62,9 @@ describe("emission tests", function () {
       [NeonDevnetAddresses.WNATIVE_TOKEN, ust.address, mim.address, dai.address],
       [owner.address, owner2.address],
       [amount100At18, amount100At18],
-      amount100At18.mul(2)
+      amount100At18.mul(2),
+        2,
+        false
     );
 
     // -------------- create pairs ---------------------
@@ -265,7 +267,9 @@ async function emissionLoop(
     [wmatic.address, ust.address, mim.address],
     [owner.address],
     [initial],
-    initial
+    initial,
+      2,
+      false
   );
   const pair = await TestHelper.addLiquidity(
     core.factory,
