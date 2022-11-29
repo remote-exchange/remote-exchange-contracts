@@ -118,22 +118,6 @@ describe("multi reward pool tests", function () {
     expect(await pool.earned(Misc.ZERO_ADDRESS, Misc.ZERO_ADDRESS)).is.eq(0);
   });
 
-  it("getPriorBalanceIndex test", async function () {
-    expect(await pool.getPriorBalanceIndex(Misc.ZERO_ADDRESS, 0)).is.eq(0);
-  });
-
-  it("getPriorSupplyIndex test", async function () {
-    expect(await pool.getPriorSupplyIndex(0)).is.eq(0);
-  });
-
-  it("getPriorRewardPerToken test", async function () {
-    expect((await pool.getPriorRewardPerToken(Misc.ZERO_ADDRESS, 0))[0]).is.eq(0);
-  });
-
-  it("batchRewardPerToken for empty tokens test", async function () {
-    await pool.batchUpdateRewardPerToken(Misc.ZERO_ADDRESS, 100)
-  });
-
   it("batchRewardPerToken test", async function () {
     await pool.connect(rewarder).notifyRewardAmount(rewardToken.address, FULL_REWARD);
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 24);
@@ -145,7 +129,6 @@ describe("multi reward pool tests", function () {
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 24);
     await pool.withdraw(parseUnits('1'));
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 24);
-    await pool.batchUpdateRewardPerToken(Misc.ZERO_ADDRESS, 100)
   });
 
   it("deposit zero amount should be reverted", async function () {
@@ -197,8 +180,6 @@ describe("multi reward pool tests", function () {
     await pool.withdraw(await pool.balanceOf(owner.address));
 
     await pool.deposit(parseUnits('0.1'));
-
-    await pool.batchUpdateRewardPerToken(rewardToken.address, 200);
   });
 
   it("deposit and get rewards should receive all amount", async function () {
@@ -292,9 +273,6 @@ describe("multi reward pool tests", function () {
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 24 * 6);
     await pool.connect(user).deposit(parseUnits('0.2'));
 
-    await pool.batchUpdateRewardPerToken(rewardToken.address, 200);
-    await pool.batchUpdateRewardPerToken(rewardToken2.address, 200);
-
     await pool.registerRewardToken(rewardToken2.address);
     await pool.connect(rewarder).notifyRewardAmount(rewardToken2.address, FULL_REWARD.div(4));
 
@@ -311,8 +289,6 @@ describe("multi reward pool tests", function () {
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 6);
     await pool.connect(user).testDoubleDeposit(parseUnits('0.2'));
 
-    await pool.batchUpdateRewardPerToken(rewardToken.address, 200);
-
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 6);
     await pool.connect(user).deposit(parseUnits('0.2'));
 
@@ -322,9 +298,6 @@ describe("multi reward pool tests", function () {
     await pool.connect(rewarder).notifyRewardAmount(rewardToken.address, FULL_REWARD.div(4));
     await TimeUtils.advanceBlocksOnTs(1);
     await pool.connect(rewarder).notifyRewardAmount(rewardToken2.address, FULL_REWARD.div(4));
-
-    await pool.batchUpdateRewardPerToken(rewardToken.address, 1);
-    await pool.batchUpdateRewardPerToken(rewardToken2.address, 1);
 
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 24 * 6);
     await pool.connect(user).withdraw(parseUnits('0.2'));
@@ -337,8 +310,6 @@ describe("multi reward pool tests", function () {
 
     await TimeUtils.advanceBlocksOnTs(60 * 60 * 6);
     await pool.deposit(parseUnits('0.5'));
-
-    await pool.batchUpdateRewardPerToken(rewardToken2.address, 0);
 
     // *** GET REWARDS ***
 
@@ -358,8 +329,6 @@ describe("multi reward pool tests", function () {
 
     await pool.withdraw(parseUnits('1'));
     await pool.deposit(parseUnits('1'));
-
-    await pool.batchUpdateRewardPerToken(rewardToken.address, 200);
   });
 
 });
