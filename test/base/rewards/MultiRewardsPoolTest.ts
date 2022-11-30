@@ -167,7 +167,7 @@ describe("multi reward pool tests", function () {
     await pool.connect(rewarder).notifyRewardAmount(rewardToken.address, FULL_REWARD.div(4));
     await expect(pool.connect(rewarder).notifyRewardAmount(rewardToken.address, 10)).revertedWith('Amount should be higher than remaining rewards');
     await expect(pool.connect(rewarder).notifyRewardAmount(wmatic.address, 10)).revertedWith('Wrong token for rewards');
-    await pool.connect(rewarder).notifyRewardAmount(rewardToken.address, Misc.MAX_UINT.div('10000000000000000000'));
+    await pool.connect(rewarder).notifyRewardAmount(rewardToken.address, Misc.MAX_UINT.div('10000000000000000000000000000'));
   });
 
   // ***************** THE MAIN LOGIC TESTS *********************************

@@ -22,13 +22,13 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
 
   /// @dev Rewards are released over 7 days
   uint internal constant DURATION = 7 days;
-  uint internal constant PRECISION = 10 ** 18;
+  uint internal constant PRECISION = 10 ** 27;
   uint internal constant MAX_REWARD_TOKENS = 10;
 
   /// Default snx staking contract implementation
   /// https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 
-  /// @dev Reward rate with precision 1e18
+  /// @dev Reward rate with precision 1e27
   mapping(address => uint) public rewardRate;
   mapping(address => uint) public periodFinish;
   mapping(address => uint) public lastUpdateTime;
