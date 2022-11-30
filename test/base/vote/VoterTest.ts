@@ -254,10 +254,10 @@ describe("voter tests", function () {
     await bribeMimUst.notifyRewardAmount(core.token.address, pair1000);
     await staking.notifyRewardAmount(pair1000);
 
-    expect((await gaugeMimUst.rewardRate(core.token.address)).div('1000000000000000000')).to.equal(BigNumber.from(1653));
-    expect((await bribeMimUst.rewardRate(core.token.address)).div('1000000000000000000')).to.equal(BigNumber.from(1653));
+    expect((await gaugeMimUst.rewardRate(core.token.address)).div('1000000000000000000000000000')).to.equal(BigNumber.from(1653));
+    expect((await bribeMimUst.rewardRate(core.token.address)).div('1000000000000000000000000000')).to.equal(BigNumber.from(1653));
     expect(await staking.rewardRate()).to.equal(BigNumber.from(1653));
-    expect((await gaugeMimUst.rewardRate(core.token.address)).div('1000000000000000000')).to.be.equal(await staking.rewardRate());
+    expect((await gaugeMimUst.rewardRate(core.token.address)).div('1000000000000000000000000000')).to.be.equal(await staking.rewardRate());
   });
 
   it("exit & getReward gauge stake", async function () {

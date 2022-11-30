@@ -476,8 +476,8 @@ describe("base old tests", function () {
     await bribe.notifyRewardAmount(ve_underlying.address, pair_1000);
     await staking.notifyRewardAmount(pair_1000);
 
-    expect(await gauge.rewardRate(ve_underlying.address)).to.equal(ethers.BigNumber.from('1653439153439153439153'));
-    expect(await bribe.rewardRate(ve_underlying.address)).to.equal(ethers.BigNumber.from('1653439153439153439153'));
+    expect(await gauge.rewardRate(ve_underlying.address)).to.equal(ethers.BigNumber.from('1653439153439153439153439153439'));
+    expect(await bribe.rewardRate(ve_underlying.address)).to.equal(ethers.BigNumber.from('1653439153439153439153439153439'));
     expect(await staking.rewardRate()).to.equal(ethers.BigNumber.from(1653));
   });
 
@@ -653,7 +653,7 @@ describe("base old tests", function () {
   });
 
   it("staking rewards sense check", async function () {
-    expect((await gauge.rewardRate(ve_underlying.address)).div('1000000000000000000')).to.be.equal(await staking.rewardRate());
+    expect((await gauge.rewardRate(ve_underlying.address)).div('1000000000000000000000000000')).to.be.equal(await staking.rewardRate());
   });
 
   it("minter mint", async function () {
@@ -670,7 +670,7 @@ describe("base old tests", function () {
     await voter.distributeAll();
     await network.provider.send("evm_increaseTime", [1800])
     await network.provider.send("evm_mine")
-    expect((await gauge.rewardRate(ve_underlying.address)).div('1000000000000000000')).to.be.equal(await staking.rewardRate());
+    expect((await gauge.rewardRate(ve_underlying.address)).div('1000000000000000000000000000')).to.be.equal(await staking.rewardRate());
   });
 
   it("gauge claim rewards1", async function () {
@@ -683,16 +683,11 @@ describe("base old tests", function () {
     await gauge.deposit(pair_1000, 0);
     await staking.getReward();
     const before = await ve_underlying.balanceOf(owner.address)
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
     const earned = await gauge.earned(ve_underlying.address, owner.address);
     await gauge.getReward(owner.address, [ve_underlying.address]);
     const after = await ve_underlying.balanceOf(owner.address)
     const received = after.sub(before);
-    expect(received).to.be.below(earned)
+    expect(received).to.be.below(earned.add(earned.div(100000)))
 
     await gauge.withdraw(await gauge.balanceOf(owner.address));
     await pair.approve(gauge.address, pair_1000);
@@ -798,13 +793,8 @@ describe("base old tests", function () {
     await gauge.connect(owner3).deposit(pair_1000, 0);
     const before = await ve_underlying.balanceOf(owner3.address)
     await gauge.connect(owner3).withdraw(await gauge.balanceOf(owner3.address));
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
     await pair.connect(owner3).approve(gauge.address, pair_1000);
     await gauge.connect(owner3).deposit(pair_1000, 0);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
-    await gauge.batchUpdateRewardPerToken(ve_underlying.address, 200);
     const earned = await gauge.earned(ve_underlying.address, owner3.address);
     await gauge.connect(owner3).getReward(owner3.address, [ve_underlying.address]);
     await gauge.connect(owner3).withdraw(await gauge.balanceOf(owner3.address));
@@ -838,7 +828,7 @@ describe("base old tests", function () {
     await voter.updateFor([gauge.address]);
     await voter.distributeAll();
     await voter.claimRewards([gauge.address], [[ve_underlying.address]]);
-    expect((await gauge.rewardRate(ve_underlying.address)).div('1000000000000000000')).to.be.equal(await staking.rewardRate());
+    expect((await gauge.rewardRate(ve_underlying.address)).div('1000000000000000000000000000')).to.be.equal(await staking.rewardRate());
     console.log(await gauge.rewardPerTokenStored(ve_underlying.address))
   });
 
