@@ -77,12 +77,12 @@ export default {
       timeout: 99999 * 2,
       gas: argv.hardhatChainId === 245022926 ? 19_000_000 :
         argv.hardhatChainId === 97 ? 19_000_000 :
-          undefined,
+          'auto',
       forking: !!argv.hardhatChainId && argv.hardhatChainId !== 31337 ? {
         url:
           argv.hardhatChainId === 245022926 ? argv.neonDevnetRpcUrl :
           argv.hardhatChainId === 97 ? argv.bscTestnetRpcUrl :
-              undefined,
+              '',
         blockNumber:
           argv.hardhatChainId === 245022926 ? argv.neonDevnetForkBlock !== 0 ? argv.neonDevnetForkBlock : undefined :
           argv.hardhatChainId === 97 ? argv.bscTestForkBlock !== 0 ? argv.bscTestForkBlock : undefined :
@@ -136,7 +136,8 @@ export default {
     apiKey: {
       bsc: argv.networkScanKey,
       bscTestnet: argv.networkScanKey,
-      avalancheFujiTestnet: argv.networkScanKeyFuji
+      avalancheFujiTestnet: argv.networkScanKeyFuji,
+      goerli: argv.networkScanKey
     },
     customChains: []
   },

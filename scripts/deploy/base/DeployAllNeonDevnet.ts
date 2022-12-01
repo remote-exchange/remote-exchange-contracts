@@ -61,7 +61,7 @@ async function main() {
     + 'controller: ' + core.controller.address + '\n'
 
   console.log(data);
-  writeFileSync('tmp/core_testnet.txt', data);
+  writeFileSync('tmp/core_neondevnet.txt', data);
 
   await Misc.wait(5);
 

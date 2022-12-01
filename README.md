@@ -170,28 +170,23 @@ Also, an NFT for referral should have at least 1% of the current circulation sup
 |:-----|:--------|:----|
 | TBD   | TBD     | TBD |
 
-### Neon devnet deployment
+### Goerli deployment
 
-| Name        | Address                                                                                                                           |
-|:------------|:----------------------------------------------------------------------------------------------------------------------------------|
-| WNEON_TOKEN | [0xf8ad328e98f85fccbf09e43b16dcbbda7e84beab](https://neonscan.org/address/0xf8ad328e98f85fccbf09e43b16dcbbda7e84beab) |
-| USDC_TOKEN  | [0x8A56FA4d0768c5f15C88E40D4256F41819AbaD56](https://neonscan.org/address/0x8A56FA4d0768c5f15C88E40D4256F41819AbaD56) |
-| WDAI_TOKEN  | [0x583E3F2A7a2F78F0ed2bB177563C3D26769e52Ea](https://neonscan.org/address/0x583E3F2A7a2F78F0ed2bB177563C3D26769e52Ea) |
-| USDT_TOKEN  | [0x5EFc3A6eD6FDA49702ffb1c65FB433387892b96d](https://neonscan.org/address/0x5EFc3A6eD6FDA49702ffb1c65FB433387892b96d)             |
+| Name       | Address                                                                                                                           |
+|:-----------|:----------------------------------------------------------------------------------------------------------------------------------|
+| WETH | [0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6](https://goerli.etherscan.io/address/0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6) |
+| USDC | [0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C](https://goerli.etherscan.io/address/0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C) |
+| DAI  | [0xdc31Ee1784292379Fbb2964b3B9C4124D8F89C60](https://goerli.etherscan.io/address/0xdc31ee1784292379fbb2964b3b9c4124d8f89c60) |
 
 | Name                 | Address                                                                                                               |
 |:---------------------|:----------------------------------------------------------------------------------------------------------------------|
-| RemoteFactory          | [0xE452CDC71B9f488333fa9a999B421BaC0cD988fc](https://neonscan.org/address/0xE452CDC71B9f488333fa9a999B421BaC0cD988fc) |
-| RemoteRouter01         | [0x088286351671D1C50dAe1E50bA1Cb51ad62FfB65](https://neonscan.org/address/0x088286351671D1C50dAe1E50bA1Cb51ad62FfB65)                                                                                     |
-| BribeFactory         | [0x8bDd46A71c4819f275e46067166dDC21676c44a7](https://neonscan.org/address/0x8bDd46A71c4819f275e46067166dDC21676c44a7)                                                                                                                      |
-| GaugesFactory        | [0x848C5376aA96e00e2DF234382BEBc19ea902E75F](https://neonscan.org/address/0x848C5376aA96e00e2DF234382BEBc19ea902E75F)                                                                                                                      |
-| REMOTE                 | [0x063b205706d132a016F700CA97A35c6BC9E412AE](https://neonscan.org/address/0x063b205706d132a016F700CA97A35c6BC9E412AE)                                                                             |
-| RemoteMinter           | [0x3059d7762bc85a94949310e4fC4fAfe5638b9dbb](https://neonscan.org/address/0x3059d7762bc85a94949310e4fC4fAfe5638b9dbb)                                                                                                                      |
-| RemoteVoter            | [0x666C9CaA4EEB36998Bc93fa156A4ad320A21CcBb](https://neonscan.org/address/0x666C9CaA4EEB36998Bc93fa156A4ad320A21CcBb)                                                                                                                      |
-| veREMOTE               | [0xcA3De43EB81B8D18949B3cBd28Aaddf31214B4A6](https://neonscan.org/address/0xcA3De43EB81B8D18949B3cBd28Aaddf31214B4A6)                                                                                                                      |
-| VeDist               | [0x1BE438fdEF546acdb9CFdE511F5F8F3d4a9972c9](https://neonscan.org/address/0x1BE438fdEF546acdb9CFdE511F5F8F3d4a9972c9)                                                                                                                      |
-| Controller           | [0x811Ee1914CE3289c1F202E676B7500d92be8641f](https://neonscan.org/address/0x811Ee1914CE3289c1F202E676B7500d92be8641f)                                                                                                                      |
-
-### Neon deployment
-
-TBD
+| RemoteFactory          | [0xcA3De43EB81B8D18949B3cBd28Aaddf31214B4A6](https://goerli.etherscan.io/address/0xcA3De43EB81B8D18949B3cBd28Aaddf31214B4A6) |
+| RemoteRouter01         | [0x848C5376aA96e00e2DF234382BEBc19ea902E75F](https://goerli.etherscan.io/address/0x848C5376aA96e00e2DF234382BEBc19ea902E75F)                                                                                     |
+| BribeFactory         | [0xBEC703542f6A728eCF64fb166bfDdd5f4C66842B](https://goerli.etherscan.io/address/0xBEC703542f6A728eCF64fb166bfDdd5f4C66842B)                                                                                                                      |
+| GaugesFactory        | [0x55E7267B5F1a617363cFb1A0E8d8976676A4Fe34](https://goerli.etherscan.io/address/0x55E7267B5F1a617363cFb1A0E8d8976676A4Fe34)                                                                                                                      |
+| REMOTE                 | [0x1BE438fdEF546acdb9CFdE511F5F8F3d4a9972c9](https://goerli.etherscan.io/address/0x1BE438fdEF546acdb9CFdE511F5F8F3d4a9972c9)                                                                             |
+| RemoteMinter           | [0x6f99991C5994888dE61E575422526C2618CFEbFD](https://goerli.etherscan.io/address/0x6f99991C5994888dE61E575422526C2618CFEbFD)                                                                                                                      |
+| RemoteVoter            | [0xb3ad2C4229B38eF53E9FDB51358136f9FE039eb1](https://goerli.etherscan.io/address/0xb3ad2C4229B38eF53E9FDB51358136f9FE039eb1)                                                                                                                      |
+| veREMOTE               | [0x3059d7762bc85a94949310e4fC4fAfe5638b9dbb](https://goerli.etherscan.io/address/0x3059d7762bc85a94949310e4fC4fAfe5638b9dbb)                                                                                                                      |
+| VeDist               | [0xA85A93493661BDF1a8607e0f58Fcbc537e93a16a](https://goerli.etherscan.io/address/0xA85A93493661BDF1a8607e0f58Fcbc537e93a16a)                                                                                                                      |
+| Controller           | [0x8bDd46A71c4819f275e46067166dDC21676c44a7](https://goerli.etherscan.io/address/0x8bDd46A71c4819f275e46067166dDC21676c44a7)                                                                                                                      |
