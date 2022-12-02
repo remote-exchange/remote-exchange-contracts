@@ -37,7 +37,6 @@ async function main() {
   console.log('Network:', await p.getNetwork())
   console.log('BlockNumber:', await p.getBlockNumber())
 
-
   const signer = (await ethers.getSigners())[0];
 
   let minterMax = BigNumber.from("0");
@@ -47,6 +46,10 @@ async function main() {
   }
 
   const core = await Deploy.deployCore(signer, GoerliAddresses.WNATIVE_TOKEN, voterTokens, claimants, claimantsAmounts, minterMax, 0)
+
+  const swapLibrary = await Deploy.deployContract(signer, 'SwapLibrary', ROUTER);
+
+  const multicall = await Deploy.deployContract(signer, 'Multicall');
 
   const data = ''
     + 'token: ' + core.token.address + '\n'
@@ -59,9 +62,11 @@ async function main() {
     + 'voter: ' + core.voter.address + '\n'
     + 'minter: ' + core.minter.address + '\n'
     + 'controller: ' + core.controller.address + '\n'
+    + 'swapLibrary: ' + swapLibrary.address + '\n'
+    + 'multicall: ' + multicall.address + '\n'
 
   console.log(data);
-  writeFileSync('tmp/core_goerli.txt', data);
+  writeFileSync('tmp/addresses_goerli.txt', data);
 
   await Misc.wait(5);
 
@@ -74,6 +79,8 @@ async function main() {
   await Verify.verifyWithArgs(core.veDist.address, [core.ve.address]);
   await Verify.verifyWithArgs(core.voter.address, [core.ve.address, core.factory.address, core.gaugesFactory.address, core.bribesFactory.address]);
   await Verify.verifyWithArgs(core.minter.address, [core.ve.address, core.controller.address]);
+  await Verify.verifyWithArgs(swapLibrary.address, [core.router.address]);
+  await Verify.verify(multicall.address);
 
 }
 
