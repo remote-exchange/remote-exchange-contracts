@@ -54,18 +54,21 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
     if (claimed0 > 0 || claimed1 > 0) {
       uint _fees0 = fees0 + claimed0;
       uint _fees1 = fees1 + claimed1;
+      uint _epoch = IBribe(bribe).epoch();
       (address _token0, address _token1) = IPair(_underlying).tokens();
       if (_fees0 > IMultiRewardsPool(bribe).left(_token0)) {
         fees0 = 0;
         IERC20(_token0).safeIncreaseAllowance(bribe, _fees0);
-        IBribe(bribe).notifyRewardAmount(_token0, _fees0);
+        IBribe(bribe).notifyForNextEpoch(_token0, _fees0);
+        IBribe(bribe).notifyDelayedRewards(_token0, _epoch);
       } else {
         fees0 = _fees0;
       }
       if (_fees1 > IMultiRewardsPool(bribe).left(_token1)) {
         fees1 = 0;
         IERC20(_token1).safeIncreaseAllowance(bribe, _fees1);
-        IBribe(bribe).notifyRewardAmount(_token1, _fees1);
+        IBribe(bribe).notifyForNextEpoch(_token1, _fees1);
+        IBribe(bribe).notifyDelayedRewards(_token1, _epoch);
       } else {
         fees1 = _fees1;
       }
@@ -159,10 +162,10 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
     return Math.min((_derived + _adjusted), _balance);
   }
 
-  function notifyRewardAmount(address token, uint amount) external {
+  function notifyRewardAmount(address token, uint amount) lock external {
     // claim rewards should not ruin distribution process
     try Gauge(address(this)).claimFees() {} catch {}
-    _notifyRewardAmount(token, amount);
+    _notifyRewardAmount(token, amount, true);
   }
 
   function earned(address token, address account) external view override returns (uint) {

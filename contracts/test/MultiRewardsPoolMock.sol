@@ -43,7 +43,7 @@ contract MultiRewardsPoolMock is MultiRewardsPoolBase {
   }
 
   function notifyRewardAmount(address token, uint amount) external {
-    _notifyRewardAmount(token, amount);
+    _notifyRewardAmount(token, amount, true);
   }
 
 }

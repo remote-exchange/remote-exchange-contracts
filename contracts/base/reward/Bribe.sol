@@ -3,18 +3,30 @@
 pragma solidity 0.8.15;
 
 import "../../interface/IBribe.sol";
+import "../../interface/IERC20.sol";
 import "../../interface/IERC721.sol";
 import "../../interface/IVoter.sol";
 import "../../interface/IVe.sol";
 import "./MultiRewardsPoolBase.sol";
+import "../Reentrancy.sol";
 
 /// @title Bribes pay out rewards for a given pool based on the votes
 ///        that were received from the user (goes hand in hand with Gauges.vote())
 contract Bribe is IBribe, MultiRewardsPoolBase {
 
+  using SafeERC20 for IERC20;
+
+  uint internal constant _WEEK = 86400 * 7;
+
   /// @dev Only voter can modify balances (since it only happens on vote())
   address public immutable voter;
   address public immutable ve;
+
+  /// @dev rt => epoch => amount
+  mapping(address => mapping(uint => uint)) public rewardsQueue;
+
+  event RewardsForNextEpoch(address token, uint epoch, uint amount);
+  event DelayedRewardsNotified(address token, uint epoch, uint amount);
 
   // Assume that will be created from voter contract through factory
   constructor(
@@ -59,8 +71,39 @@ contract Bribe is IBribe, MultiRewardsPoolBase {
 
   /// @dev Used to notify a gauge/bribe of a given reward,
   ///      this can create griefing attacks by extending rewards
-  function notifyRewardAmount(address token, uint amount) external override {
-    _notifyRewardAmount(token, amount);
+  function notifyRewardAmount(address token, uint amount) external lock override {
+    _notifyRewardAmount(token, amount, true);
+  }
+
+  /// @dev Add delayed rewards for the next epoch
+  function notifyForNextEpoch(address token, uint amount) external lock override {
+    require(isRewardToken[token], "Token not allowed");
+
+    IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+
+    uint _epoch = epoch() + 1;
+    rewardsQueue[token][_epoch] = amount;
+
+    emit RewardsForNextEpoch(token, _epoch, amount);
+  }
+
+  /// @dev Notify delayed rewards
+  function notifyDelayedRewards(address token, uint _epoch) external lock override {
+    require(epoch() == _epoch, "!epoch");
+    _notifyDelayedRewards(token, _epoch);
+  }
+
+  function _notifyDelayedRewards(address token, uint _epoch) internal {
+    uint amount = rewardsQueue[token][_epoch];
+    if (amount != 0 && amount > left(token)) {
+      _notifyRewardAmount(token, amount, false);
+      delete rewardsQueue[token][_epoch];
+      emit DelayedRewardsNotified(token, epoch(), amount);
+    }
+  }
+
+  function epoch() public view returns(uint) {
+    return block.timestamp / _WEEK;
   }
 
   // use tokenId instead of address for

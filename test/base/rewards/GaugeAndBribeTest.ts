@@ -288,6 +288,14 @@ describe("gauge and bribe tests", function () {
     expect(await mim.balanceOf(bribe.address)).is.above(parseUnits(EXPECTED_FEE).sub(2));
     expect(await wmatic.balanceOf(bribe.address)).is.above(parseUnits(EXPECTED_FEE, 6).sub(2));
 
+    await TimeUtils.advanceBlocksOnTs(WEEK);
+
+    // await gauge.claimFees(); // need swap fees to claim delayed rewards
+
+    const epoch = await bribe.epoch();
+    await bribe.notifyDelayedRewards(mim.address, epoch)
+    await bribe.notifyDelayedRewards(wmatic.address, epoch)
+
     expect(await bribe.left(mim.address)).is.above(100);
     expect(await bribe.left(wmatic.address)).is.above(100);
 

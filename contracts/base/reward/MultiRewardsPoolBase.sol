@@ -96,7 +96,7 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
     return _derivedBalance(account);
   }
 
-  function left(address token) external view override returns (uint) {
+  function left(address token) public view override returns (uint) {
     if (block.timestamp >= periodFinish[token]) return 0;
     uint _remaining = periodFinish[token] - block.timestamp;
     return _remaining * rewardRate[token] / PRECISION;
@@ -261,17 +261,19 @@ abstract contract MultiRewardsPoolBase is Reentrancy, IMultiRewardsPool {
   //************************ NOTIFY ******************************************
   //**************************************************************************
 
-  function _notifyRewardAmount(address token, uint amount) internal lock virtual {
+  function _notifyRewardAmount(address token, uint amount, bool transferRewards) internal virtual {
     require(token != underlying, "Wrong token for rewards");
     require(amount > 0, "Zero amount");
     require(isRewardToken[token], "Token not allowed");
 
     _updateReward(token, address(0));
 
-    uint balanceBefore = IERC20(token).balanceOf(address(this));
-    IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    // refresh amount if token was taxable
-    amount = IERC20(token).balanceOf(address(this)) - balanceBefore;
+    if (transferRewards) {
+      uint balanceBefore = IERC20(token).balanceOf(address(this));
+      IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+      // refresh amount if token was taxable
+      amount = IERC20(token).balanceOf(address(this)) - balanceBefore;
+    }
 
     if (block.timestamp >= periodFinish[token]) {
       rewardRate[token] = amount * PRECISION / DURATION;
