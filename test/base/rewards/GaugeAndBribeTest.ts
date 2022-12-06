@@ -290,11 +290,7 @@ describe("gauge and bribe tests", function () {
 
     await TimeUtils.advanceBlocksOnTs(WEEK);
 
-    // await gauge.claimFees(); // need swap fees to claim delayed rewards
-
-    const epoch = await bribe.epoch();
-    await bribe.notifyDelayedRewards(mim.address, epoch)
-    await bribe.notifyDelayedRewards(wmatic.address, epoch)
+    await gauge.claimFees();
 
     expect(await bribe.left(mim.address)).is.above(100);
     expect(await bribe.left(wmatic.address)).is.above(100);

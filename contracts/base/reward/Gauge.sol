@@ -50,17 +50,20 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
 
   function _claimFees() internal returns (uint claimed0, uint claimed1) {
     address _underlying = underlying;
+    (address _token0, address _token1) = IPair(_underlying).tokens();
+    uint _epoch = IBribe(bribe).epoch();
+
+    IBribe(bribe).notifyDelayedRewards(_token0, _epoch);
+    IBribe(bribe).notifyDelayedRewards(_token1, _epoch);
+
     (claimed0, claimed1) = IPair(_underlying).claimFees();
     if (claimed0 > 0 || claimed1 > 0) {
       uint _fees0 = fees0 + claimed0;
       uint _fees1 = fees1 + claimed1;
-      uint _epoch = IBribe(bribe).epoch();
-      (address _token0, address _token1) = IPair(_underlying).tokens();
       if (_fees0 > IMultiRewardsPool(bribe).left(_token0)) {
         fees0 = 0;
         IERC20(_token0).safeIncreaseAllowance(bribe, _fees0);
         IBribe(bribe).notifyForNextEpoch(_token0, _fees0);
-        IBribe(bribe).notifyDelayedRewards(_token0, _epoch);
       } else {
         fees0 = _fees0;
       }
@@ -68,7 +71,6 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
         fees1 = 0;
         IERC20(_token1).safeIncreaseAllowance(bribe, _fees1);
         IBribe(bribe).notifyForNextEpoch(_token1, _fees1);
-        IBribe(bribe).notifyDelayedRewards(_token1, _epoch);
       } else {
         fees1 = _fees1;
       }
