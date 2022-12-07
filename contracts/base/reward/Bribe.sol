@@ -104,7 +104,8 @@ contract Bribe is IBribe, MultiRewardsPoolBase {
   }
 
   function epoch() public view returns(uint) {
-    return IMinter(IVoter(voter).minter()).activePeriod() / _WEEK - 1;
+    uint activePeriod = IMinter(IVoter(voter).minter()).activePeriod();
+    return activePeriod != 0 ? activePeriod / _WEEK - 1 : 0;
   }
 
   // use tokenId instead of address for
