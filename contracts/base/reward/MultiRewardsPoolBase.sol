@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IERC20.sol";
-import "../../interface/IMultiRewardsPool.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IMultiRewardsPool.sol";
 import "../../lib/Math.sol";
 import "../../lib/SafeERC20.sol";
 import "../Reentrancy.sol";

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IFactory.sol";
+import "../../interfaces/IFactory.sol";
 import "./RemotePair.sol";
 
 contract RemoteFactory is IFactory {

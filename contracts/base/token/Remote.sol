@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IERC20.sol";
+import "../../interfaces/IERC20.sol";
 
 contract Remote is IERC20 {
 

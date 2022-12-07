@@ -2,12 +2,12 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IERC20.sol";
-import "../../interface/IERC721.sol";
-import "../../interface/IERC721Metadata.sol";
-import "../../interface/IVe.sol";
-import "../../interface/IERC721Receiver.sol";
-import "../../interface/IController.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IERC721.sol";
+import "../../interfaces/IERC721Metadata.sol";
+import "../../interfaces/IVe.sol";
+import "../../interfaces/IERC721Receiver.sol";
+import "../../interfaces/IController.sol";
 import "../Reentrancy.sol";
 import "../../lib/SafeERC20.sol";
 import "../../lib/Math.sol";

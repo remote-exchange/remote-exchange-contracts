@@ -2,12 +2,12 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IERC20.sol";
-import "../../interface/IERC721Metadata.sol";
-import "../../interface/IPair.sol";
-import "../../interface/IFactory.sol";
-import "../../interface/ICallee.sol";
-import "../../interface/IUnderlying.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IERC721Metadata.sol";
+import "../../interfaces/IPair.sol";
+import "../../interfaces/IFactory.sol";
+import "../../interfaces/ICallee.sol";
+import "../../interfaces/IUnderlying.sol";
 import "./PairFees.sol";
 import "../../lib/Math.sol";
 import "../../lib/SafeERC20.sol";

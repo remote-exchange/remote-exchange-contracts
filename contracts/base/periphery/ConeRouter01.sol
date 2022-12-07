@@ -4,10 +4,10 @@ pragma solidity 0.8.15;
 
 import "../../lib/Math.sol";
 import "../../lib/SafeERC20.sol";
-import "../../interface/IERC20.sol";
-import "../../interface/IWMATIC.sol";
-import "../../interface/IPair.sol";
-import "../../interface/IFactory.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IWMATIC.sol";
+import "../../interfaces/IPair.sol";
+import "../../interfaces/IFactory.sol";
 
 contract RemoteRouter01 {
   using SafeERC20 for IERC20;

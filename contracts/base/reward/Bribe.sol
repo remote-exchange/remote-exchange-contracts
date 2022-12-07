@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IBribe.sol";
-import "../../interface/IERC721.sol";
-import "../../interface/IVoter.sol";
-import "../../interface/IVe.sol";
+import "../../interfaces/IBribe.sol";
+import "../../interfaces/IERC721.sol";
+import "../../interfaces/IVoter.sol";
+import "../../interfaces/IVe.sol";
 import "./MultiRewardsPoolBase.sol";
 
 /// @title Bribes pay out rewards for a given pool based on the votes

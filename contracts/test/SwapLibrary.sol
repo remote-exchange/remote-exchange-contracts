@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.15;
 
-import "../interface/IRouter.sol";
-import "../interface/IFactory.sol";
-import "../interface/IPair.sol";
+import "../interfaces/IRouter.sol";
+import "../interfaces/IFactory.sol";
+import "../interfaces/IPair.sol";
 import "../lib/Math.sol";
 
 contract SwapLibrary {

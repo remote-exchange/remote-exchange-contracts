@@ -2,12 +2,12 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IGauge.sol";
-import "../../interface/IPair.sol";
-import "../../interface/IVoter.sol";
-import "../../interface/IBribe.sol";
-import "../../interface/IERC721.sol";
-import "../../interface/IVe.sol";
+import "../../interfaces/IGauge.sol";
+import "../../interfaces/IPair.sol";
+import "../../interfaces/IVoter.sol";
+import "../../interfaces/IBribe.sol";
+import "../../interfaces/IERC721.sol";
+import "../../interfaces/IVe.sol";
 import "./MultiRewardsPoolBase.sol";
 
 /// @title Gauges are used to incentivize pools, they emit reward tokens over 7 days for staked LP tokens

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.15;
 
-import "./interface/IController.sol";
+import "./interfaces/IController.sol";
 
 contract Controller is IController {
 

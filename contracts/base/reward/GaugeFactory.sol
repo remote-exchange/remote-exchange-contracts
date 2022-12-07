@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IGaugeFactory.sol";
+import "../../interfaces/IGaugeFactory.sol";
 import "./Gauge.sol";
 
 contract GaugeFactory is IGaugeFactory {

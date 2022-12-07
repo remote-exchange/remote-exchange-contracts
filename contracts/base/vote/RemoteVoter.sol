@@ -2,18 +2,18 @@
 
 pragma solidity 0.8.15;
 
-import "../../interface/IVe.sol";
-import "../../interface/IVoter.sol";
-import "../../interface/IERC20.sol";
-import "../../interface/IERC721.sol";
-import "../../interface/IGauge.sol";
-import "../../interface/IFactory.sol";
-import "../../interface/IPair.sol";
-import "../../interface/IBribeFactory.sol";
-import "../../interface/IGaugeFactory.sol";
-import "../../interface/IMinter.sol";
-import "../../interface/IBribe.sol";
-import "../../interface/IMultiRewardsPool.sol";
+import "../../interfaces/IVe.sol";
+import "../../interfaces/IVoter.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IERC721.sol";
+import "../../interfaces/IGauge.sol";
+import "../../interfaces/IFactory.sol";
+import "../../interfaces/IPair.sol";
+import "../../interfaces/IBribeFactory.sol";
+import "../../interfaces/IGaugeFactory.sol";
+import "../../interfaces/IMinter.sol";
+import "../../interfaces/IBribe.sol";
+import "../../interfaces/IMultiRewardsPool.sol";
 import "../Reentrancy.sol";
 import "../../lib/SafeERC20.sol";
 

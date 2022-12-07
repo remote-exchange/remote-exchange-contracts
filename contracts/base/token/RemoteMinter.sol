@@ -4,13 +4,13 @@ pragma solidity 0.8.15;
 
 import "../../lib/Math.sol";
 import "../../lib/SafeERC20.sol";
-import "../../interface/IUnderlying.sol";
-import "../../interface/IVoter.sol";
-import "../../interface/IVe.sol";
-import "../../interface/IVeDist.sol";
-import "../../interface/IMinter.sol";
-import "../../interface/IERC20.sol";
-import "../../interface/IController.sol";
+import "../../interfaces/IUnderlying.sol";
+import "../../interfaces/IVoter.sol";
+import "../../interfaces/IVe.sol";
+import "../../interfaces/IVeDist.sol";
+import "../../interfaces/IMinter.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IController.sol";
 
 /// @title Codifies the minting rules as per ve(3,3),
 ///        abstracted from the token to support any token that allows minting

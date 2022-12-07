@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 
 import "../base/core/RemotePair.sol";
 import "../base/vote/Ve.sol";
-import "../interface/IVeDist.sol";
+import "../interfaces/IVeDist.sol";
 
 contract ContractTestHelper is IERC721Receiver {
   using SafeERC20 for IERC20;

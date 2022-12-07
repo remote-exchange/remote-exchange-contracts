@@ -3,9 +3,9 @@
 pragma solidity 0.8.15;
 
 import "../../lib/Math.sol";
-import "../../interface/IERC20.sol";
-import "../../interface/IVeDist.sol";
-import "../../interface/IVe.sol";
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IVeDist.sol";
+import "../../interfaces/IVe.sol";
 import "../../lib/SafeERC20.sol";
 
 contract VeDist is IVeDist {

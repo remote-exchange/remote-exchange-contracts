@@ -3,7 +3,7 @@
 pragma solidity 0.8.15;
 
 import "./Bribe.sol";
-import "../../interface/IBribeFactory.sol";
+import "../../interfaces/IBribeFactory.sol";
 
 contract BribeFactory is IBribeFactory {
   address public lastGauge;
