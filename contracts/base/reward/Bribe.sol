@@ -6,6 +6,7 @@ import "../../interface/IBribe.sol";
 import "../../interface/IERC20.sol";
 import "../../interface/IERC721.sol";
 import "../../interface/IVoter.sol";
+import "../../interface/IMinter.sol";
 import "../../interface/IVe.sol";
 import "./MultiRewardsPoolBase.sol";
 import "../Reentrancy.sol";
@@ -103,7 +104,7 @@ contract Bribe is IBribe, MultiRewardsPoolBase {
   }
 
   function epoch() public view returns(uint) {
-    return block.timestamp / _WEEK;
+    return IMinter(IVoter(voter).minter()).activePeriod() / _WEEK - 1;
   }
 
   // use tokenId instead of address for
