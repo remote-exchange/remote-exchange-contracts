@@ -6,6 +6,8 @@ interface IVoter {
 
   function ve() external view returns (address);
 
+  function minter() external view returns (address);
+
   function attachTokenToGauge(uint _tokenId, address account) external;
 
   function detachTokenFromGauge(uint _tokenId, address account) external;

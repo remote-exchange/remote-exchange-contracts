@@ -225,6 +225,11 @@ describe("gauge and bribe tests", function () {
   });
 
   it("claim fees", async function () {
+    // need any vote for minter.updatePeriod()
+    await core.voter.vote(1, [mimUstPair.address], [100]);
+    await TimeUtils.advanceBlocksOnTs(WEEK * 2);
+    await core.minter.updatePeriod();
+
     const EXPECTED_FEE = '0.1';
     await mim.approve(core.router.address, parseUnits('10000'));
     await core.router.addLiquidityMATIC(
@@ -288,6 +293,9 @@ describe("gauge and bribe tests", function () {
     expect(await mim.balanceOf(bribe.address)).is.above(parseUnits(EXPECTED_FEE).sub(2));
     expect(await wmatic.balanceOf(bribe.address)).is.above(parseUnits(EXPECTED_FEE, 6).sub(2));
 
+    await TimeUtils.advanceBlocksOnTs(WEEK);
+    await core.minter.updatePeriod();
+    await gauge.claimFees();
     expect(await bribe.left(mim.address)).is.above(100);
     expect(await bribe.left(wmatic.address)).is.above(100);
 
