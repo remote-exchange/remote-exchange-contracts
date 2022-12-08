@@ -957,8 +957,4 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   function pointHistory(uint _loc) external view override returns (Point memory) {
     return _pointHistory[_loc];
   }
-
-  function refId(uint _tokenId) external view returns (uint) {
-    return ref[_tokenId];
-  }
 }

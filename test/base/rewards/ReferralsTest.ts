@@ -30,6 +30,9 @@ describe("referrals test", function () {
   let owner3: SignerWithAddress;
   let owner4: SignerWithAddress;
   let owner5: SignerWithAddress;
+  let owner6: SignerWithAddress;
+  let owner7: SignerWithAddress;
+  let owner8: SignerWithAddress;
   let core: CoreAddresses;
   let ust: Token;
   let mim: Token;
@@ -39,7 +42,7 @@ describe("referrals test", function () {
 
   before(async function () {
     snapshotBefore = await TimeUtils.snapshot();
-    [owner, owner2, owner3, owner4, owner5] = await ethers.getSigners();
+    [owner, owner2, owner3, owner4, owner5, owner6, owner7, owner8] = await ethers.getSigners();
 
     wmatic = await Deploy.deployContract(owner, 'Token', 'WMATIC', 'WMATIC', 18, owner.address) as Token;
     await wmatic.mint(owner.address, parseUnits('100000'));
@@ -55,6 +58,12 @@ describe("referrals test", function () {
     await mim.transfer(owner4.address, utils.parseUnits('100'));
     await ust.transfer(owner5.address, utils.parseUnits('100', 6));
     await mim.transfer(owner5.address, utils.parseUnits('100'));
+    await ust.transfer(owner6.address, utils.parseUnits('100', 6));
+    await mim.transfer(owner6.address, utils.parseUnits('100'));
+    await ust.transfer(owner7.address, utils.parseUnits('100', 6));
+    await mim.transfer(owner7.address, utils.parseUnits('100'));
+    await ust.transfer(owner8.address, utils.parseUnits('100', 6));
+    await mim.transfer(owner8.address, utils.parseUnits('100'));
 
     core = await Deploy.deployCore(
       owner,
@@ -113,7 +122,6 @@ describe("referrals test", function () {
     expect(veBal).is.not.eq(0);
     expect(await core.ve.balanceOf(owner3.address)).is.eq(0);
 
-    // await depositToGauge(core, owner2, mim.address, ust.address, gaugeMimUst, 2);
     await depositToGauge(core, owner3, mim.address, ust.address, gaugeMimUst, 0);
 
     await TimeUtils.advanceBlocksOnTs(WEEK * 2);
@@ -122,36 +130,74 @@ describe("referrals test", function () {
 
     await TimeUtils.advanceBlocksOnTs(WEEK);
 
-    // await gaugeMimUst.connect(owner2).getReward(owner2.address, [core.token.address]);
     await gaugeMimUst.connect(owner3).getReward(owner3.address, [core.token.address]);
 
     await gaugeMimUst.connect(owner3).withdrawAll();
 
-    await core.token.connect(owner3).transfer(owner4.address, BigNumber.from(100000));
-    await core.token.connect(owner3).transfer(owner5.address, BigNumber.from(100000));
-    await core.token.connect(owner4).approve(core.ve.address, BigNumber.from(100000));
-    await core.token.connect(owner5).approve(core.ve.address, BigNumber.from(100000));
-    await core.ve.connect(owner4).createLock(BigNumber.from(100000), 60 * 60 * 24 * 365 * 4, 2);
-    await core.ve.connect(owner5).createLock(BigNumber.from(100000), 60 * 60 * 24 * 365 * 4, 0);
+    const nft4LockAmount = parseUnits('100')
+    const nft5LockAmount = parseUnits('100')
+    const nft6LockAmount = parseUnits('1')
+    const nft7LockAmount = parseUnits('1')
+
+    await core.token.connect(owner3).transfer(owner4.address, nft4LockAmount);
+    await core.token.connect(owner3).transfer(owner5.address, nft5LockAmount);
+    await core.token.connect(owner3).transfer(owner6.address, nft6LockAmount);
+    await core.token.connect(owner3).transfer(owner7.address, nft6LockAmount);
+    await core.token.connect(owner4).approve(core.ve.address, nft4LockAmount);
+    await core.token.connect(owner5).approve(core.ve.address, nft5LockAmount);
+    await core.token.connect(owner6).approve(core.ve.address, nft6LockAmount);
+    await core.token.connect(owner7).approve(core.ve.address, nft7LockAmount);
+    await core.ve.connect(owner4).createLock(nft4LockAmount, 60 * 60 * 24 * 365 * 4, 2);
+    await core.ve.connect(owner5).createLock(nft5LockAmount, 60 * 60 * 24 * 365 * 4, 0);
+    await core.ve.connect(owner6).createLock(nft6LockAmount, 60 * 60 * 24 * 365 * 4, 2);
+    await core.ve.connect(owner7).createLock(nft7LockAmount, 60 * 60 * 24 * 365 * 4, 0);
     expect(await core.ve.balanceOf(owner4.address)).is.eq('1');
+    expect(await core.ve.balanceOf(owner5.address)).is.eq('1');
+    expect(await core.ve.balanceOf(owner6.address)).is.eq('1');
+    expect(await core.ve.balanceOf(owner7.address)).is.eq('1');
+    expect(await core.ve.balanceOf(owner8.address)).is.eq('0');
 
     await depositToGauge(core, owner4, mim.address, ust.address, gaugeMimUst, 4);
     await depositToGauge(core, owner5, mim.address, ust.address, gaugeMimUst, 5);
+    await depositToGauge(core, owner6, mim.address, ust.address, gaugeMimUst, 6);
+    await depositToGauge(core, owner7, mim.address, ust.address, gaugeMimUst, 7);
+    await depositToGauge(core, owner8, mim.address, ust.address, gaugeMimUst, 0);
 
     await TimeUtils.advanceBlocksOnTs(WEEK);
 
-    const reward1 = await gaugeMimUst.earned(core.token.address, owner4.address);
-    const reward2 = await gaugeMimUst.earned(core.token.address, owner5.address);
+    const reward4 = await gaugeMimUst.earned(core.token.address, owner4.address);
+    const reward5 = await gaugeMimUst.earned(core.token.address, owner5.address);
+    const reward6 = await gaugeMimUst.earned(core.token.address, owner6.address);
+    const reward7 = await gaugeMimUst.earned(core.token.address, owner7.address);
+    const rewardNoBoost = await gaugeMimUst.earned(core.token.address, owner8.address);
 
-    console.log("Earned for NFT with referrer", formatUnits(reward1));
-    console.log("Earned for NFT without referrer", formatUnits(reward2));
+    const totalPower = await core.ve.totalSupply();
+    const nft4Power = await core.ve.balanceOfNFT(4)
+    const nft5Power = await core.ve.balanceOfNFT(5)
+    const nft6Power = await core.ve.balanceOfNFT(6)
+    const nft7Power = await core.ve.balanceOfNFT(7)
+
+    console.log(`Deposit of 1.0 UST + 1.0 MIM LP to gauge`)
+    console.log(`Total voting power: ${formatUnits(totalPower)} veREMOTE`)
+    console.log(`Earned for ${formatUnits(nft4Power)} veREMOTE ${parseInt(nft4Power.mul(10000).div(totalPower))/100}% NFT with referrer: ${formatUnits(reward4)}; boost = x${parseInt(reward4.mul(1000).div(rewardNoBoost))/1000} (reward with max boost - 3% of referrer's share)`);
+    console.log(`Earned for ${formatUnits(nft5Power)} veREMOTE ${parseInt(nft5Power.mul(10000).div(totalPower))/100}% NFT without referrer: ${formatUnits(reward5)}; boost = x${parseInt(reward5.mul(1000).div(rewardNoBoost))/1000} (max boost)`);
+    console.log(`Earned for ${formatUnits(nft6Power)} veREMOTE ${parseInt(nft6Power.mul(10000).div(totalPower))/100}% NFT with referrer: ${formatUnits(reward6)}; boost = x${parseInt(reward6.mul(1000).div(rewardNoBoost))/1000} (reward with x1.1 boost - 3% of referrer's share)`);
+    console.log(`Earned for ${formatUnits(nft7Power)} veREMOTE ${parseInt(nft7Power.mul(10000).div(totalPower))/100}% NFT without referrer: ${formatUnits(reward7)}; boost = x${parseInt(reward7.mul(1000).div(rewardNoBoost))/1000}`);
+    console.log(`Earned without NFT and referrer: ${formatUnits(rewardNoBoost)}; boost = x1.000 (no boost)`);
+
+    // check max boost: x2.5
+    expect(reward5.mul(1000).div(rewardNoBoost)).to.eq(2500)
+
+    // check referral max boost: x2.425 of reward with max boost - 3% of referrer's share
+    expect(reward4.mul(1000).div(rewardNoBoost)).to.eq(2425)
+
+    // check referral boost for 0.25% power veNFT: about x1.1 of reward + 3% of referrer's share
+    expect(reward6.div(97).mul(100).mul(10).div(rewardNoBoost)).to.eq(11)
 
     await gaugeMimUst.connect(owner4).getReward(owner4.address, [core.token.address]);
     expect(await gaugeMimUst.earned(core.token.address, owner4.address)).to.eq(0)
     await gaugeMimUst.connect(owner5).getReward(owner5.address, [core.token.address]);
     expect(await gaugeMimUst.earned(core.token.address, owner5.address)).to.eq(0)
-
-    // todo: cover max boost limit
   });
 
 });
