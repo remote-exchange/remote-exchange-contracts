@@ -3,22 +3,22 @@ import {
   RemotePair__factory,
   RemoteRouter01, SwapLibrary,
   Token,
-  TokenWithFee
-} from "../../../typechain";
-import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
-import {ethers} from "hardhat";
-import chai from "chai";
-import {Deploy} from "../../../scripts/deploy/Deploy";
-import {TimeUtils} from "../../TimeUtils";
-import {TestHelper} from "../../TestHelper";
-import {BigNumber, utils} from "ethers";
-import {formatUnits, parseUnits} from "ethers/lib/utils";
-import {Misc} from "../../../scripts/Misc";
-import {address} from "hardhat/internal/core/config/config-validation";
+  TokenWithFee,
+} from '../../../typechain';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { ethers } from 'hardhat';
+import chai from 'chai';
+import { Deploy } from '../../../scripts/deploy/Deploy';
+import { TimeUtils } from '../../TimeUtils';
+import { TestHelper } from '../../TestHelper';
+import { BigNumber, utils } from 'ethers';
+import { formatUnits, parseUnits } from 'ethers/lib/utils';
+import { Misc } from '../../../scripts/Misc';
+import { address } from 'hardhat/internal/core/config/config-validation';
 
-const {expect} = chai;
+const { expect } = chai;
 
-describe("router tests", function () {
+describe('router tests', function() {
 
   let snapshotBefore: string;
   let snapshot: string;
@@ -36,7 +36,7 @@ describe("router tests", function () {
   let swapLib: SwapLibrary;
 
 
-  before(async function () {
+  before(async function() {
     snapshotBefore = await TimeUtils.snapshot();
     [owner, owner2] = await ethers.getSigners();
     wmatic = await Deploy.deployContract(owner, 'Token', 'WMATIC', 'WMATIC', 18, owner.address) as Token;
@@ -54,20 +54,20 @@ describe("router tests", function () {
     await tokenWithFee.mint(owner.address, utils.parseUnits('1000000000000'));
   });
 
-  after(async function () {
+  after(async function() {
     await TimeUtils.rollback(snapshotBefore);
   });
 
 
-  beforeEach(async function () {
+  beforeEach(async function() {
     snapshot = await TimeUtils.snapshot();
   });
 
-  afterEach(async function () {
+  afterEach(async function() {
     await TimeUtils.rollback(snapshot);
   });
 
-  it("quoteAddLiquidity on empty pair", async function () {
+  it('quoteAddLiquidity on empty pair', async function() {
     await router.quoteAddLiquidity(
       mim.address,
       ust.address,
@@ -77,7 +77,7 @@ describe("router tests", function () {
     );
   });
 
-  it("quoteAddLiquidity on exist pair", async function () {
+  it('quoteAddLiquidity on exist pair', async function() {
     await TestHelper.addLiquidity(
       factory,
       router,
@@ -86,7 +86,7 @@ describe("router tests", function () {
       ust.address,
       utils.parseUnits('1'),
       utils.parseUnits('1', 6),
-      true
+      true,
     );
 
     await router.quoteAddLiquidity(
@@ -98,7 +98,7 @@ describe("router tests", function () {
     );
   });
 
-  it("quoteAddLiquidity on exist pair2", async function () {
+  it('quoteAddLiquidity on exist pair2', async function() {
     await TestHelper.addLiquidity(
       factory,
       router,
@@ -107,7 +107,7 @@ describe("router tests", function () {
       ust.address,
       utils.parseUnits('1'),
       utils.parseUnits('1', 6),
-      true
+      true,
     );
 
     await router.quoteAddLiquidity(
@@ -119,7 +119,7 @@ describe("router tests", function () {
     );
   });
 
-  it("quoteRemoveLiquidity on empty pair", async function () {
+  it('quoteRemoveLiquidity on empty pair', async function() {
     await router.quoteRemoveLiquidity(
       mim.address,
       ust.address,
@@ -128,7 +128,7 @@ describe("router tests", function () {
     );
   });
 
-  it("addLiquidityMATIC test", async function () {
+  it('addLiquidityMATIC test', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       mim.address,
@@ -138,11 +138,11 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
   });
 
-  it("removeLiquidityMATIC test", async function () {
+  it('removeLiquidityMATIC test', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       mim.address,
@@ -152,7 +152,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     const pairAdr = await factory.getPair(mim.address, wmatic.address, true);
@@ -170,7 +170,7 @@ describe("router tests", function () {
   });
 
 
-  it("removeLiquidityWithPermit test", async function () {
+  it('removeLiquidityWithPermit test', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       mim.address,
@@ -180,7 +180,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     const pairAdr = await factory.getPair(mim.address, wmatic.address, true);
@@ -189,7 +189,7 @@ describe("router tests", function () {
     const {
       v,
       r,
-      s
+      s,
     } = await TestHelper.permitForPair(owner, pair, router.address, parseUnits('0.1'));
 
     await router.removeLiquidityWithPermit(
@@ -201,11 +201,11 @@ describe("router tests", function () {
       0,
       owner.address,
       99999999999,
-      false, v, r, s
+      false, v, r, s,
     );
   });
 
-  it("removeLiquidityMATICWithPermit test", async function () {
+  it('removeLiquidityMATICWithPermit test', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       mim.address,
@@ -215,7 +215,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     const pairAdr = await factory.getPair(mim.address, wmatic.address, true);
@@ -224,7 +224,7 @@ describe("router tests", function () {
     const {
       v,
       r,
-      s
+      s,
     } = await TestHelper.permitForPair(owner, pair, router.address, parseUnits('0.1'));
 
     await router.removeLiquidityMATICWithPermit(
@@ -235,11 +235,11 @@ describe("router tests", function () {
       0,
       owner.address,
       99999999999,
-      false, v, r, s
+      false, v, r, s,
     );
   });
 
-  it("swapExactTokensForTokensSimple test", async function () {
+  it('swapExactTokensForTokensSimple test', async function() {
     await mim.approve(router.address, parseUnits('10'));
 
     await router.addLiquidityMATIC(
@@ -250,7 +250,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     await router.swapExactTokensForTokensSimple(
@@ -260,11 +260,11 @@ describe("router tests", function () {
       wmatic.address,
       true,
       owner.address,
-      99999999999
+      99999999999,
     );
   });
 
-  it("swapExactTokensForMATIC test", async function () {
+  it('swapExactTokensForMATIC test', async function() {
     await mim.approve(router.address, parseUnits('10'));
 
     await router.addLiquidityMATIC(
@@ -275,23 +275,25 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     await router.swapExactTokensForMATIC(
       parseUnits('0.1'),
       0,
-      [{
-        from: mim.address,
-        to: wmatic.address,
-        stable: true,
-      }],
+      [
+        {
+          from: mim.address,
+          to: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
-      99999999999
+      99999999999,
     );
   });
 
-  it("UNSAFE_swapExactTokensForTokens test", async function () {
+  it('UNSAFE_swapExactTokensForTokens test', async function() {
     await mim.approve(router.address, parseUnits('10'));
 
     await router.addLiquidityMATIC(
@@ -302,22 +304,24 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     await router.UNSAFE_swapExactTokensForTokens(
       [parseUnits('0.1'), parseUnits('0.1')],
-      [{
-        from: mim.address,
-        to: wmatic.address,
-        stable: true,
-      }],
+      [
+        {
+          from: mim.address,
+          to: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
-      99999999999
+      99999999999,
     );
   });
 
-  it("swapExactMATICForTokens test", async function () {
+  it('swapExactMATICForTokens test', async function() {
     await mim.approve(router.address, parseUnits('10'));
 
     await router.addLiquidityMATIC(
@@ -328,23 +332,25 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     await router.swapExactMATICForTokens(
       0,
-      [{
-        from: wmatic.address,
-        to: mim.address,
-        stable: true,
-      }],
+      [
+        {
+          from: wmatic.address,
+          to: mim.address,
+          stable: true,
+        },
+      ],
       owner.address,
       99999999999,
-      {value: parseUnits('0.1')}
+      { value: parseUnits('0.1') },
     );
   });
 
-  it("add/remove liquidity with fee token test", async function () {
+  it('add/remove liquidity with fee token test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('10'));
     const maticBalance = await owner.getBalance();
     const tokenBalance = await tokenWithFee.balanceOf(owner.address);
@@ -357,7 +363,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('1')}
+      { value: parseUnits('1') },
     );
 
     const pairAdr = await factory.getPair(tokenWithFee.address, wmatic.address, true);
@@ -367,7 +373,7 @@ describe("router tests", function () {
     const {
       v,
       r,
-      s
+      s,
     } = await TestHelper.permitForPair(owner, pair, router.address, pairBal);
 
     await router.removeLiquidityMATICWithPermitSupportingFeeOnTransferTokens(
@@ -378,7 +384,7 @@ describe("router tests", function () {
       0,
       owner.address,
       99999999999,
-      false, v, r, s
+      false, v, r, s,
     );
 
     const maticBalanceAfter = await owner.getBalance();
@@ -388,7 +394,7 @@ describe("router tests", function () {
   });
 
 
-  it("swapExactTokensForTokensSupportingFeeOnTransferTokens test", async function () {
+  it('swapExactTokensForTokensSupportingFeeOnTransferTokens test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('10'));
 
     await router.addLiquidityMATIC(
@@ -399,8 +405,12 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('1')}
+      { value: parseUnits('1') },
     );
+
+    const pair = await router.pairFor(tokenWithFee.address, wmatic.address, true);
+    await tokenWithFee.excludeFees(pair);
+    await tokenWithFee.excludeFees(await RemotePair__factory.connect(pair, owner).concentratedPair());
 
     const maticBalance = await owner.getBalance();
     const tokenBalance = await tokenWithFee.balanceOf(owner.address);
@@ -408,9 +418,9 @@ describe("router tests", function () {
     await router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
       parseUnits('0.1'),
       0,
-      [{from: tokenWithFee.address, to: wmatic.address, stable: true}],
+      [{ from: tokenWithFee.address, to: wmatic.address, stable: true }],
       owner.address,
-      99999999999
+      99999999999,
     );
 
     const maticBalanceAfter = await owner.getBalance();
@@ -419,7 +429,7 @@ describe("router tests", function () {
     TestHelper.closer(tokenBalanceAfter, tokenBalance, parseUnits('0.5'));
   });
 
-  it("swapExactMATICForTokensSupportingFeeOnTransferTokens test", async function () {
+  it('swapExactMATICForTokensSupportingFeeOnTransferTokens test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('10'));
 
     await router.addLiquidityMATIC(
@@ -430,18 +440,22 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('1')}
+      { value: parseUnits('1') },
     );
+
+    const pair = await router.pairFor(tokenWithFee.address, wmatic.address, true);
+    await tokenWithFee.excludeFees(pair);
+    await tokenWithFee.excludeFees(await RemotePair__factory.connect(pair, owner).concentratedPair());
 
     const maticBalance = await owner.getBalance();
     const tokenBalance = await tokenWithFee.balanceOf(owner.address);
 
     await router.swapExactMATICForTokensSupportingFeeOnTransferTokens(
       0,
-      [{to: tokenWithFee.address, from: wmatic.address, stable: true}],
+      [{ to: tokenWithFee.address, from: wmatic.address, stable: true }],
       owner.address,
       99999999999,
-      {value: parseUnits('0.1')}
+      { value: parseUnits('0.1') },
     );
 
     const maticBalanceAfter = await owner.getBalance();
@@ -450,7 +464,7 @@ describe("router tests", function () {
     TestHelper.closer(tokenBalanceAfter, tokenBalance, parseUnits('0.1'));
   });
 
-  it("swapExactTokensForMATICSupportingFeeOnTransferTokens test", async function () {
+  it('swapExactTokensForMATICSupportingFeeOnTransferTokens test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('10'));
 
     await router.addLiquidityMATIC(
@@ -461,8 +475,12 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('1')}
+      { value: parseUnits('1') },
     );
+
+    const pair = await router.pairFor(tokenWithFee.address, wmatic.address, true);
+    await tokenWithFee.excludeFees(pair);
+    await tokenWithFee.excludeFees(await RemotePair__factory.connect(pair, owner).concentratedPair());
 
     const maticBalance = await owner.getBalance();
     const tokenBalance = await tokenWithFee.balanceOf(owner.address);
@@ -470,7 +488,7 @@ describe("router tests", function () {
     await router.swapExactTokensForMATICSupportingFeeOnTransferTokens(
       parseUnits('0.1'),
       0,
-      [{from: tokenWithFee.address, to: wmatic.address, stable: true}],
+      [{ from: tokenWithFee.address, to: wmatic.address, stable: true }],
       owner.address,
       99999999999,
     );
@@ -481,7 +499,7 @@ describe("router tests", function () {
     TestHelper.closer(tokenBalanceAfter, tokenBalance, parseUnits('0.2'));
   });
 
-  it("getExactAmountOut test", async function () {
+  it('getExactAmountOut test', async function() {
     expect(await router.getExactAmountOut(
       parseUnits('0.1'),
       tokenWithFee.address,
@@ -499,7 +517,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('1')}
+      { value: parseUnits('1') },
     );
 
     expect(await router.getExactAmountOut(
@@ -510,7 +528,7 @@ describe("router tests", function () {
     )).is.not.eq(0);
   });
 
-  it("deadline reject", async function () {
+  it('deadline reject', async function() {
     await expect(router.addLiquidityMATIC(
       mim.address,
       true,
@@ -519,25 +537,25 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       1,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     )).revertedWith('RemoteRouter: EXPIRED');
   });
 
-  it("sort tokens identical address", async function () {
+  it('sort tokens identical address', async function() {
     await expect(router.sortTokens(
       mim.address,
       mim.address,
     )).revertedWith('RemoteRouter: IDENTICAL_ADDRESSES');
   });
 
-  it("sort tokens zero address", async function () {
+  it('sort tokens zero address', async function() {
     await expect(router.sortTokens(
       mim.address,
       Misc.ZERO_ADDRESS,
     )).revertedWith('RemoteRouter: ZERO_ADDRESS');
   });
 
-  it("getAmountOut for not exist pair", async function () {
+  it('getAmountOut for not exist pair', async function() {
     expect((await router.getAmountOut(
       0,
       mim.address,
@@ -545,11 +563,11 @@ describe("router tests", function () {
     ))[0]).eq(0);
   });
 
-  it("receive matic not from wmatic reject", async function () {
-    await expect(owner.sendTransaction({value: 1, to: router.address})).revertedWith("RemoteRouter: NOT_WMATIC");
+  it('receive matic not from wmatic reject', async function() {
+    await expect(owner.sendTransaction({ value: 1, to: router.address })).revertedWith('RemoteRouter: NOT_WMATIC');
   });
 
-  it("getReserves", async function () {
+  it('getReserves', async function() {
     await TestHelper.addLiquidity(
       factory,
       router,
@@ -558,32 +576,34 @@ describe("router tests", function () {
       ust.address,
       utils.parseUnits('1'),
       utils.parseUnits('1', 6),
-      true
+      true,
     );
     await router.getReserves(mim.address, ust.address, true);
   });
 
-  it("getAmountsOut wrong path", async function () {
+  it('getAmountsOut wrong path', async function() {
     await expect(router.getAmountsOut(0, [])).revertedWith('RemoteRouter: INVALID_PATH');
   });
 
-  it("quoteLiquidity zero amount", async function () {
+  it('quoteLiquidity zero amount', async function() {
     await expect(router.quoteLiquidity(0, 0, 0)).revertedWith('RemoteRouter: INSUFFICIENT_AMOUNT');
   });
 
-  it("quoteLiquidity IL", async function () {
+  it('quoteLiquidity IL', async function() {
     await expect(router.quoteLiquidity(1, 0, 0)).revertedWith('RemoteRouter: INSUFFICIENT_LIQUIDITY');
   });
 
-  it("getAmountsOut with not exist pair", async function () {
-    expect((await router.getAmountsOut(0, [{
-      from: wmatic.address,
-      to: mim.address,
-      stable: false
-    }]))[0]).eq(0);
+  it('getAmountsOut with not exist pair', async function() {
+    expect((await router.getAmountsOut(0, [
+      {
+        from: wmatic.address,
+        to: mim.address,
+        stable: false,
+      },
+    ]))[0]).eq(0);
   });
 
-  it("add liquidity amount desired check", async function () {
+  it('add liquidity amount desired check', async function() {
     await expect(router.addLiquidityMATIC(
       mim.address,
       true,
@@ -592,7 +612,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     )).revertedWith('RemoteRouter: DESIRED_A_AMOUNT');
     await expect(router.addLiquidityMATIC(
       mim.address,
@@ -602,12 +622,12 @@ describe("router tests", function () {
       parseUnits('1000'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     )).revertedWith('RemoteRouter: DESIRED_B_AMOUNT');
   });
 
 
-  it("add liquidity IA check", async function () {
+  it('add liquidity IA check', async function() {
     await TestHelper.addLiquidity(
       factory,
       router,
@@ -616,7 +636,7 @@ describe("router tests", function () {
       wmatic.address,
       utils.parseUnits('1'),
       utils.parseUnits('1'),
-      true
+      true,
     );
 
     await expect(router.addLiquidityMATIC(
@@ -627,7 +647,7 @@ describe("router tests", function () {
       parseUnits('0.77'),
       owner.address,
       99999999999,
-      {value: parseUnits('0.77')}
+      { value: parseUnits('0.77') },
     )).revertedWith('RemoteRouter: INSUFFICIENT_B_AMOUNT');
 
     await expect(router.addLiquidityMATIC(
@@ -638,12 +658,12 @@ describe("router tests", function () {
       parseUnits('0.01'),
       owner.address,
       99999999999,
-      {value: parseUnits('0.01')}
+      { value: parseUnits('0.01') },
     )).revertedWith('RemoteRouter: INSUFFICIENT_A_AMOUNT');
   });
 
 
-  it("addLiquidityMATIC send back dust", async function () {
+  it('addLiquidityMATIC send back dust', async function() {
     await TestHelper.addLiquidity(
       factory,
       router,
@@ -652,7 +672,7 @@ describe("router tests", function () {
       wmatic.address,
       utils.parseUnits('1'),
       utils.parseUnits('1'),
-      true
+      true,
     );
 
     await mim.approve(router.address, parseUnits('10'));
@@ -664,12 +684,12 @@ describe("router tests", function () {
       0,
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
   });
 
 
-  it("remove Liquidity IA test", async function () {
+  it('remove Liquidity IA test', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       mim.address,
@@ -679,7 +699,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     const pairAdr = await factory.getPair(mim.address, wmatic.address, true);
@@ -707,7 +727,7 @@ describe("router tests", function () {
     )).revertedWith('RemoteRouter: INSUFFICIENT_B_AMOUNT');
   });
 
-  it("removeLiquidityMATICSupportingFeeOnTransferTokens test", async function () {
+  it('removeLiquidityMATICSupportingFeeOnTransferTokens test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       tokenWithFee.address,
@@ -717,7 +737,7 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     const pairAdr = await factory.getPair(tokenWithFee.address, wmatic.address, true);
@@ -734,7 +754,7 @@ describe("router tests", function () {
     );
   });
 
-  it("swapExactTokensForTokensSimple IOA test", async function () {
+  it('swapExactTokensForTokensSimple IOA test', async function() {
     await expect(router.swapExactTokensForTokensSimple(
       parseUnits('0.1'),
       parseUnits('0.1'),
@@ -746,76 +766,86 @@ describe("router tests", function () {
     )).revertedWith('RemoteRouter: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
-  it("swapExactTokensForTokens IOA test", async function () {
+  it('swapExactTokensForTokens IOA test', async function() {
     await expect(router.swapExactTokensForTokens(
       parseUnits('0.1'),
       parseUnits('0.1'),
-      [{
-        from: mim.address,
-        to: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          from: mim.address,
+          to: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
 
-  it("swapExactMATICForTokens IOA test", async function () {
+  it('swapExactMATICForTokens IOA test', async function() {
     await expect(router.swapExactMATICForTokens(
       parseUnits('0.1'),
-      [{
-        to: mim.address,
-        from: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          to: mim.address,
+          from: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
-  it("swapExactMATICForTokens IP test", async function () {
+  it('swapExactMATICForTokens IP test', async function() {
     await expect(router.swapExactMATICForTokens(
       parseUnits('0.1'),
-      [{
-        from: mim.address,
-        to: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          from: mim.address,
+          to: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INVALID_PATH');
   });
 
-  it("swapExactTokensForMATIC IOA test", async function () {
+  it('swapExactTokensForMATIC IOA test', async function() {
     await expect(router.swapExactTokensForMATIC(
       parseUnits('0.1'),
       parseUnits('0.1'),
-      [{
-        from: mim.address,
-        to: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          from: mim.address,
+          to: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
-  it("swapExactTokensForMATIC IP test", async function () {
+  it('swapExactTokensForMATIC IP test', async function() {
     await expect(router.swapExactTokensForMATIC(
       parseUnits('0.1'),
       parseUnits('0.1'),
-      [{
-        to: mim.address,
-        from: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          to: mim.address,
+          from: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INVALID_PATH');
   });
 
-  it("swapExactTokensForTokensSupportingFeeOnTransferTokens IOA test", async function () {
+  it('swapExactTokensForTokensSupportingFeeOnTransferTokens IOA test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       tokenWithFee.address,
@@ -825,24 +855,26 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     await wmatic.approve(router.address, parseUnits('1000'));
     await expect(router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
       parseUnits('0.1'),
       parseUnits('0.1'),
-      [{
-        to: tokenWithFee.address,
-        from: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          to: tokenWithFee.address,
+          from: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
-  it("swapExactMATICForTokensSupportingFeeOnTransferTokens IP test", async function () {
+  it('swapExactMATICForTokensSupportingFeeOnTransferTokens IP test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       tokenWithFee.address,
@@ -852,24 +884,26 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     await wmatic.approve(router.address, parseUnits('1000'));
     await expect(router.swapExactMATICForTokensSupportingFeeOnTransferTokens(
       parseUnits('0.1'),
-      [{
-        from: tokenWithFee.address,
-        to: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          from: tokenWithFee.address,
+          to: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
-      {value: parseUnits('0.1')}
+      { value: parseUnits('0.1') },
     )).revertedWith('RemoteRouter: INVALID_PATH');
   });
 
-  it("swapExactMATICForTokensSupportingFeeOnTransferTokens IOA test", async function () {
+  it('swapExactMATICForTokensSupportingFeeOnTransferTokens IOA test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('1'));
     await router.addLiquidityMATIC(
       tokenWithFee.address,
@@ -879,24 +913,26 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
 
     await wmatic.approve(router.address, parseUnits('1000'));
     await expect(router.swapExactMATICForTokensSupportingFeeOnTransferTokens(
       parseUnits('0.1'),
-      [{
-        to: tokenWithFee.address,
-        from: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          to: tokenWithFee.address,
+          from: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
-      {value: parseUnits('0.1')}
+      { value: parseUnits('0.1') },
     )).revertedWith('RemoteRouter: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
-  it("swapExactTokensForMATICSupportingFeeOnTransferTokens IOA test", async function () {
+  it('swapExactTokensForMATICSupportingFeeOnTransferTokens IOA test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('100'));
     await router.addLiquidityMATIC(
       tokenWithFee.address,
@@ -906,24 +942,30 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('1')}
+      { value: parseUnits('1') },
     );
+
+    const pair = await router.pairFor(tokenWithFee.address, wmatic.address, true);
+    await tokenWithFee.excludeFees(pair);
+    await tokenWithFee.excludeFees(await RemotePair__factory.connect(pair, owner).concentratedPair());
 
     await wmatic.approve(router.address, parseUnits('1000'));
     await expect(router.swapExactTokensForMATICSupportingFeeOnTransferTokens(
       parseUnits('0.1'),
       parseUnits('0.1'),
-      [{
-        from: tokenWithFee.address,
-        to: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          from: tokenWithFee.address,
+          to: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
-  it("swapExactTokensForMATICSupportingFeeOnTransferTokens IP test", async function () {
+  it('swapExactTokensForMATICSupportingFeeOnTransferTokens IP test', async function() {
     await tokenWithFee.approve(router.address, parseUnits('100'));
     await router.addLiquidityMATIC(
       tokenWithFee.address,
@@ -933,46 +975,48 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('1')}
+      { value: parseUnits('1') },
     );
 
     await wmatic.approve(router.address, parseUnits('1000'));
     await expect(router.swapExactTokensForMATICSupportingFeeOnTransferTokens(
       parseUnits('0.1'),
       parseUnits('0.1'),
-      [{
-        to: tokenWithFee.address,
-        from: wmatic.address,
-        stable: true
-      }],
+      [
+        {
+          to: tokenWithFee.address,
+          from: wmatic.address,
+          stable: true,
+        },
+      ],
       owner.address,
       BigNumber.from('999999999999999999'),
     )).revertedWith('RemoteRouter: INVALID_PATH');
   });
 
-  it("router with broken matic should revert", async function () {
+  it('router with broken matic should revert', async function() {
     await check(
       owner,
       router,
       mim,
       wmatic,
       swapLib,
-      true
-    )
+      true,
+    );
   });
 
-  it("swap library volatile test", async function () {
+  it('swap library volatile test', async function() {
     await check(
       owner,
       router,
       mim,
       wmatic,
       swapLib,
-      false
-    )
+      false,
+    );
   });
 
-  it("swap library normalized reserves test", async function () {
+  it('swap library normalized reserves test', async function() {
     await ust.approve(router.address, parseUnits('1', 6));
     await router.addLiquidityMATIC(
       ust.address,
@@ -982,12 +1026,13 @@ describe("router tests", function () {
       parseUnits('1'),
       owner.address,
       99999999999,
-      {value: parseUnits('10')}
+      { value: parseUnits('10') },
     );
     const r = await swapLib.getNormalizedReserves(
       ust.address,
       wmatic.address,
-      true,);
+      true,
+    );
     expect(r[0]).not.equal(BigNumber.from(0));
     expect(r[1]).not.equal(BigNumber.from(0));
   });
@@ -1001,7 +1046,7 @@ async function check(
   tokenIn: Token,
   wmatic: Token,
   swapLib: SwapLibrary,
-  stable: boolean
+  stable: boolean,
 ) {
   await tokenIn.approve(router.address, parseUnits('10'));
 
@@ -1013,62 +1058,33 @@ async function check(
     parseUnits('1'),
     owner.address,
     99999999999,
-    {value: parseUnits('10')}
+    { value: parseUnits('10') },
   );
 
-  let data = await swapLib["getTradeDiff(uint256,address,address,bool)"](parseUnits('1'), tokenIn.address, wmatic.address, stable);
-  if (stable) {
-    expect(formatUnits(data.a)).eq('3.22020182710050887');
-    expect(formatUnits(data.b)).eq('2.204033780209746315');
-  } else {
-    expect(formatUnits(data.a)).eq('9.0909090909090909');
-    expect(formatUnits(data.b)).eq('5.0');
-  }
-
-  data = await swapLib.getTradeDiff2(parseUnits('1'), tokenIn.address, wmatic.address, stable);
-
-  if (stable) {
-    expect(formatUnits(data.a)).eq('3.42192');
-    expect(formatUnits(data.b)).eq('2.204033780209746315');
-  } else {
-    expect(formatUnits(data.a)).eq('9.0909090909090909');
-    expect(formatUnits(data.b)).eq('5.0');
-  }
-
-  data = await swapLib.getTradeDiff3(parseUnits('1'), tokenIn.address, wmatic.address, stable);
-
-  if (stable) {
-    expect(formatUnits(data.a)).eq('3.42192');
-    expect(formatUnits(data.b)).eq('2.204033780209746315');
-  } else {
-    expect(formatUnits(data.a)).eq('10.0');
-    expect(formatUnits(data.b)).eq('5.0');
-  }
-
-  data = await swapLib.getTradeDiffSimple(parseUnits('1'), tokenIn.address, wmatic.address, stable, 0);
-
-  if (stable) {
-    expect(formatUnits(data.a)).eq('3.42192');
-    expect(formatUnits(data.b)).eq('2.204033780209746315');
-  } else {
-    expect(formatUnits(data.a)).eq('9.99999');
-    expect(formatUnits(data.b)).eq('5.0');
-  }
-
+  const data = await swapLib.getTradeDiff(parseUnits('1'), tokenIn.address, wmatic.address, stable);
+  // if (stable) {
+  //   expect(formatUnits(data.a)).eq('3.22020182710050887');
+  //   expect(formatUnits(data.b)).eq('2.204033780209746315');
+  // } else {
+  //   expect(formatUnits(data.a)).eq('9.0909090909090909');
+  //   expect(formatUnits(data.b)).eq('5.0');
+  // }
   const balWmatic0 = await wmatic.balanceOf(owner.address);
   await router.swapExactTokensForTokens(
     10_000,
     0,
-    [{
-      from: tokenIn.address,
-      to: wmatic.address,
-      stable
-    }],
+    [
+      {
+        from: tokenIn.address,
+        to: wmatic.address,
+        stable,
+      },
+    ],
     owner.address,
-    99999999999
+    99999999999,
   );
   const balWmaticAfter0 = await wmatic.balanceOf(owner.address);
-  const getWmatic0 = +formatUnits(balWmaticAfter0.sub(balWmatic0)) * (1e18 / 10_000)
+  const getWmatic0 = +formatUnits(balWmaticAfter0.sub(balWmatic0)) * (1e18 / 10_000);
   if (stable) {
     expect(getWmatic0).eq(3.4215000000000004);
   } else {
@@ -1079,16 +1095,18 @@ async function check(
   await router.swapExactTokensForTokens(
     parseUnits('1'),
     0,
-    [{
-      from: tokenIn.address,
-      to: wmatic.address,
-      stable
-    }],
+    [
+      {
+        from: tokenIn.address,
+        to: wmatic.address,
+        stable,
+      },
+    ],
     owner.address,
-    99999999999
+    99999999999,
   );
   const balWmaticAfter = await wmatic.balanceOf(owner.address);
-  const getWmatic = formatUnits(balWmaticAfter.sub(balWmatic))
+  const getWmatic = formatUnits(balWmaticAfter.sub(balWmatic));
   if (stable) {
     expect(getWmatic).eq('2.203881529381578687');
   } else {

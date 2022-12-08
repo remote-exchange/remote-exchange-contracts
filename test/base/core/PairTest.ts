@@ -124,17 +124,6 @@ describe('pair tests', function() {
     expect(await pair.reserve1()).is.not.eq(0);
   });
 
-  it('metadata test', async function() {
-    const d = await pair.metadata();
-    expect(d.dec0).is.not.eq(0);
-    expect(d.dec1).is.not.eq(0);
-    expect(d.r0).is.not.eq(0);
-    expect(d.r1).is.not.eq(0);
-    expect(d.st).is.eq(true);
-    expect(d.t0).is.not.eq(Misc.ZERO_ADDRESS);
-    expect(d.t1).is.not.eq(Misc.ZERO_ADDRESS);
-  });
-
   it('very little swap', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await wmatic.approve(router.address, parseUnits('1'));
@@ -284,10 +273,12 @@ describe('pair tests', function() {
     await expect(pair.setSwapFee(1000)).revertedWith('!factory');
   });
 
-  it('swap loop test', async function() {
+  it('compare 1 trade with multiple trades test', async function() {
     const loop1 = await swapInLoop(owner, factory, router, 1);
     const loop100 = await swapInLoop(owner, factory, router, 10);
-    expect(loop100.sub(loop1)).is.below(10);
+    expect(+formatUnits(loop100.sub(loop1))).is.approximately(5e-7, 1e-7,
+      'difference should be not huge',
+    );
   });
 
   it('swap gas', async function() {
@@ -361,6 +352,41 @@ describe('pair tests', function() {
     expect(receipt.gasUsed).below(BigNumber.from(160_000));
   });
 
+  it('rebalance cPair price impact test', async function() {
+    // todo
+  });
+
+  it('price curve chart valotile', async function() {
+    // todo
+  });
+
+  it('price curve chart stable', async function() {
+    // todo
+  });
+
+  it('mint manipultated with flashloan', async function() {
+    // todo
+  });
+
+  it('burn manipultated with flashloan', async function() {
+    // todo
+  });
+
+  it('flashloan cPair manipulation', async function() {
+    // todo
+  });
+
+  it('move cPair reserve to exact rebalance threshold, then swap and try to arbitrage ', async function() {
+    // todo
+  });
+
+  it('average price test', async function() {
+    // todo
+  });
+
+  it('average volume test', async function() {
+    // todo
+  });
 });
 
 async function swapInLoop(
@@ -381,8 +407,8 @@ async function swapInLoop(
     owner,
     tokenA.address,
     tokenB.address,
-    amount.mul(1000),
-    amount.mul(1000),
+    amount.mul(1),
+    amount.mul(1),
     true,
   );
 
@@ -391,7 +417,7 @@ async function swapInLoop(
   await tokenA.approve(router.address, parseUnits('100'));
   for (let i = 0; i < loops; i++) {
     await router.swapExactTokensForTokens(
-      amount.div(1000).div(loops),
+      amount.div(100).div(loops),
       0,
       [{ from: tokenA.address, to: tokenB.address, stable: true }],
       owner.address,

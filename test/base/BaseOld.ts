@@ -224,7 +224,7 @@ describe("base old tests", function () {
     await ust.transfer(pair.address, ust_1);
     await mim.transfer(pair.address, mim_1);
     await pair.mint(owner.address);
-    expect(await pair.getAmountOut(ust_1, ust.address)).to.equal(ethers.BigNumber.from("982117769725505988"));
+    expect(await pair.getAmountOut(ust_1, ust.address)).to.equal(ethers.BigNumber.from("982273157592168691"));
     const output = await router.getAmountOut(ust_1, ust.address, mim.address);
     expect(await pair.getAmountOut(ust_1, ust.address)).to.equal(output.amount);
     expect(output.stable).to.equal(true);
@@ -238,7 +238,7 @@ describe("base old tests", function () {
     await ust.connect(owner2).transfer(pair.address, ust_1);
     await mim.connect(owner2).transfer(pair.address, mim_1);
     await pair.connect(owner2).mint(owner2.address);
-    expect(await pair.connect(owner2).getAmountOut(ust_1, ust.address)).to.equal(ethers.BigNumber.from("992220948146798746"));
+    expect(await pair.connect(owner2).getAmountOut(ust_1, ust.address)).to.equal(ethers.BigNumber.from("992319212712022464"));
   });
 
   it("RemoteRouter01 addLiquidity", async function () {

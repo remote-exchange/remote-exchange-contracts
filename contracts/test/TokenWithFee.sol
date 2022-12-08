@@ -25,6 +25,8 @@ contract TokenWithFee {
   address public pendingAnyswapRouter;
   uint256 public pendingRouterDelay;
 
+  mapping(address => bool) public excluded;
+
   constructor(
     string memory _name,
     string memory _symbol,
@@ -51,6 +53,10 @@ contract TokenWithFee {
       );
       _mint(msg.sender, 0);
     }
+  }
+
+  function excludeFees(address adr) external {
+    excluded[adr] = true;
   }
 
   function approve(address _spender, uint256 _value) public returns (bool) {
@@ -101,7 +107,11 @@ contract TokenWithFee {
   ) internal returns (bool) {
     balanceOf[_from] -= _value;
     // 10% fee burn
-    balanceOf[_to] += _value * 9 / 10;
+    if (excluded[_to]) {
+      balanceOf[_to] += _value;
+    } else {
+      balanceOf[_to] += _value * 9 / 10;
+    }
     emit Transfer(_from, _to, _value);
     return true;
   }

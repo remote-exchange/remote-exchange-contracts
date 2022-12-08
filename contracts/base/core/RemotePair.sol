@@ -70,7 +70,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   uint internal price0to1Cumulative;
   uint internal volume0Cumulative;
   uint internal volume1Cumulative;
-  uint internal lastPrice0to1;
+  uint public override lastPrice0to1;
 
   // index0 and index1 are used to accumulate fees,
   // this is split out from normal trades to keep the swap "clean"
@@ -148,18 +148,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
   function observationLength() external view returns (uint) {
     return observations.length;
-  }
-
-  function metadata() external view returns (
-    uint dec0,
-    uint dec1,
-    uint r0,
-    uint r1,
-    bool st,
-    address t0,
-    address t1
-  ) {
-    return (decimals0, decimals1, reserve0, reserve1, stable, token0, token1);
   }
 
   function tokens() external view override returns (address, address) {
@@ -259,6 +247,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint cBalance1 = IERC20(token1).balanceOf(_concentratedPair);
 
     if (cBalance0 < desired0 / 100) {
+      console.log('>>> REBALANCE 0', cBalance0, desired0 / 100);
       IERC20(token1).safeTransferFrom(_concentratedPair, address(this), cBalance1 / 2);
       _internalSwap(
         cBalance1 / 2,
@@ -267,7 +256,9 @@ contract RemotePair is IERC20, IPair, Reentrancy {
         balance0,
         balance1
       );
+      ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
     } else if (cBalance1 < desired1 / 100) {
+      console.log('>>> REBALANCE 1', cBalance1, desired1 / 100);
       IERC20(token0).safeTransferFrom(_concentratedPair, address(this), cBalance0 / 2);
       _internalSwap(
         cBalance0 / 2,
@@ -276,10 +267,9 @@ contract RemotePair is IERC20, IPair, Reentrancy {
         balance0,
         balance1
       );
+      ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
     }
     // both lower or higher not suppose to be. if yes - just handle as usual, should be balanced in next calls
-
-    ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
   }
 
   function _internalSwap(
