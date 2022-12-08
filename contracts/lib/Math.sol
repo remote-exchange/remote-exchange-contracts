@@ -4,6 +4,17 @@ pragma solidity 0.8.15;
 
 library Math {
 
+  /**
+     * @dev Returns the ceiling of the division of two numbers.
+     *
+     * This differs from standard division with `/` in that it rounds up instead
+     * of rounding down.
+     */
+  function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
+    // (a + b - 1) / b can overflow on addition, so we distribute.
+    return a == 0 ? 0 : (a - 1) / b + 1;
+  }
+
   function max(uint a, uint b) internal pure returns (uint) {
     return a >= b ? a : b;
   }

@@ -79,7 +79,6 @@ describe('pair tests', function() {
     await TimeUtils.rollback(snapshotBefore);
   });
 
-
   beforeEach(async function() {
     snapshot = await TimeUtils.snapshot();
   });
@@ -208,7 +207,7 @@ describe('pair tests', function() {
   });
 
   it('insufficient input amount', async function() {
-    await expect(pair2.swap(10000000, 1000000, owner.address, '0x'))
+    await expect(pair2.swap(parseUnits('0.001').add(10000000), parseUnits('0.001').add(1000000), owner.address, '0x'))
       .revertedWith('RemotePair: INSUFFICIENT_INPUT_AMOUNT');
   });
 
@@ -298,7 +297,7 @@ describe('pair tests', function() {
     await IERC20__factory.connect(token1, owner).transfer(pair.address, 1000000);
     const tx = await pair.swap(0, 10, owner.address, '0x');
     const receipt = await tx.wait();
-    expect(receipt.gasUsed).is.below(BigNumber.from(280000));
+    expect(receipt.gasUsed).is.below(BigNumber.from(400_000));
   });
 
   it('price without impact', async function() {
@@ -336,6 +335,8 @@ describe('pair tests', function() {
     await mim.transfer(p.address, parseUnits('1'));
     await expect(p.swap(0, (await p.getAmountOut(parseUnits('1'), mim.address)).add(1), owner.address, '0x'))
       .revertedWith('RemotePair: K');
+    // should normally swap without extra dust
+    await p.swap(0, (await p.getAmountOut(parseUnits('1'), mim.address)), owner.address, '0x');
   });
 
   it('mint gas', async function() {
@@ -345,7 +346,7 @@ describe('pair tests', function() {
     await IERC20__factory.connect(token1, owner).transfer(pair.address, 100000000);
     const tx = await pair.mint(owner.address);
     const receipt = await tx.wait();
-    expect(receipt.gasUsed).below(BigNumber.from(140000));
+    expect(receipt.gasUsed).below(BigNumber.from(180_000));
   });
 
   it('burn gas', async function() {
@@ -357,7 +358,7 @@ describe('pair tests', function() {
     await IERC20__factory.connect(pair.address, owner).transfer(pair.address, 100000000);
     const tx = await pair.burn(owner.address);
     const receipt = await tx.wait();
-    expect(receipt.gasUsed).below(BigNumber.from(130000));
+    expect(receipt.gasUsed).below(BigNumber.from(160_000));
   });
 
 });
@@ -370,9 +371,9 @@ async function swapInLoop(
 ) {
   const amount = parseUnits('1');
   const tokenA = await Deploy.deployContract(owner, 'Token', 'UST', 'UST', 18, owner.address) as Token;
-  await tokenA.mint(owner.address, amount.mul(2));
+  await tokenA.mint(owner.address, amount.mul(100000));
   const tokenB = await Deploy.deployContract(owner, 'Token', 'MIM', 'MIM', 18, owner.address) as Token;
-  await tokenB.mint(owner.address, amount.mul(2));
+  await tokenB.mint(owner.address, amount.mul(100000));
 
   await TestHelper.addLiquidity(
     factory,
@@ -380,8 +381,8 @@ async function swapInLoop(
     owner,
     tokenA.address,
     tokenB.address,
-    amount,
-    amount,
+    amount.mul(1000),
+    amount.mul(1000),
     true,
   );
 
@@ -390,7 +391,7 @@ async function swapInLoop(
   await tokenA.approve(router.address, parseUnits('100'));
   for (let i = 0; i < loops; i++) {
     await router.swapExactTokensForTokens(
-      amount.div(100).div(loops),
+      amount.div(1000).div(loops),
       0,
       [{ from: tokenA.address, to: tokenB.address, stable: true }],
       owner.address,

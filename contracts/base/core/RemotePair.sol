@@ -14,6 +14,8 @@ import "../../lib/SafeERC20.sol";
 import "../Reentrancy.sol";
 import "./ConcentratedPair.sol";
 
+import "hardhat/console.sol";
+
 // The base pair of pools, either stable or volatile
 contract RemotePair is IERC20, IPair, Reentrancy {
   using SafeERC20 for IERC20;
@@ -244,7 +246,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   }
 
   function cPairRatio() public view returns (uint) {
-    // todo probably smth more smart
     return swapFee / 10;
   }
 
@@ -311,10 +312,15 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint amount0In,
     uint amount1In
   ) internal view returns (uint) {
+    console.log('------ _amountsToPrice0to1');
+    console.log('amount0Out', amount0Out);
+    console.log('amount1Out', amount1Out);
+    console.log('amount0In', amount0In);
+    console.log('amount1In', amount1In);
     if (amount0Out != 0 && amount1In != 0) {
-      return (amount0Out * 1e18 / 10 ** decimals0) * 1e18 / (amount1In * 1e18 / 10 ** decimals1);
+      return (amount0Out * 1e18 / decimals0) * 1e18 / (amount1In * 1e18 / decimals1);
     } else if (amount1Out != 0 && amount0In != 0) {
-      return (amount0In * 1e18 / 10 ** decimals0) * 1e18 / (amount1Out * 1e18 / 10 ** decimals1);
+      return (amount0In * 1e18 / decimals0) * 1e18 / (amount1Out * 1e18 / decimals1);
     }
     return 0;
   }
@@ -347,7 +353,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint _volume0 = amount0In + amount0Out;
     uint _volume1 = amount1In + amount1Out;
 
-    lastPrice0to1 = _price0to1;
+    if (_price0to1 != 0) lastPrice0to1 = _price0to1;
 
     // overflow is desired
   unchecked {
@@ -400,6 +406,10 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       liquidity = Math.sqrt(_amount0 * _amount1) - MINIMUM_LIQUIDITY;
       // permanently lock the first MINIMUM_LIQUIDITY tokens
       _mint(address(0), MINIMUM_LIQUIDITY);
+      // set first price for concentrated pair
+      uint price = _amountsToPrice0to1(_amount0, 0, 0, _amount1);
+      lastPrice0to1 = price;
+      ConcentratedPair(cPair).setPrice(price);
     } else {
       liquidity = Math.min(_amount0 * _totalSupply / (_reserve0 + cBalance0), _amount1 * _totalSupply / (_reserve1 + cBalance1));
     }
@@ -454,8 +464,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   }
 
   struct SwapContext {
-    uint amountOut0Original;
-    uint amountOut1Original;
     uint reserve0;
     uint reserve1;
     uint balance0;
@@ -466,6 +474,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint amount1OutRemaining;
     address token0;
     address token1;
+    uint cK;
   }
 
   /// @dev This low-level function should be called from a contract which performs important safety checks
@@ -473,9 +482,11 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     require(!IFactory(factory).isPaused(), "RemotePair: PAUSE");
     require(amount0Out > 0 || amount1Out > 0, 'RemotePair: INSUFFICIENT_OUTPUT_AMOUNT');
 
+
+    console.log('amount0Out', amount0Out);
+    console.log('amount1Out', amount1Out);
+
     SwapContext memory context = new SwapContext[](1)[0];
-    context.amountOut0Original = amount0Out;
-    context.amountOut1Original = amount1Out;
     context.reserve0 = reserve0;
     context.reserve1 = reserve1;
     context.token0 = token0;
@@ -484,12 +495,20 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     require(to != context.token0 && to != context.token1, 'RemotePair: INVALID_TO');
 
     address cPair = concentratedPair;
+
+    console.log('cBal 0', IERC20(context.token0).balanceOf(cPair));
+    console.log('cBal 1', IERC20(context.token1).balanceOf(cPair));
+
     (
     context.cAmount0In,
     context.cAmount1In,
     context.amount0OutRemaining,
-    context.amount1OutRemaining
+    context.amount1OutRemaining,
+    context.cK
     ) = ConcentratedPair(cPair).getAmountIn(amount0Out, amount1Out);
+
+    require(context.amount0OutRemaining < context.reserve0 && context.amount1OutRemaining < context.reserve1, 'RemotePair: INSUFFICIENT_LIQUIDITY');
+
     // optimistically transfer tokens from concentrated pair
     if (amount0Out - context.amount0OutRemaining > 0) {
       IERC20(context.token0).safeTransferFrom(cPair, to, amount0Out - context.amount0OutRemaining);
@@ -498,8 +517,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       IERC20(context.token1).safeTransferFrom(cPair, to, amount1Out - context.amount1OutRemaining);
     }
 
-    require(context.amount0OutRemaining < context.reserve0
-      && context.amount1OutRemaining < context.reserve1, 'RemotePair: INSUFFICIENT_LIQUIDITY');
     // optimistically transfer tokens from this contract
     if (context.amount0OutRemaining > 0) IERC20(context.token0).safeTransfer(to, context.amount0OutRemaining);
     if (context.amount1OutRemaining > 0) IERC20(context.token1).safeTransfer(to, context.amount1OutRemaining);
@@ -507,29 +524,46 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     // callback, used for flash loans
     if (data.length > 0) ICallee(to).hook(msg.sender, amount0Out, amount1Out, data);
 
+    console.log('context.reserve0', context.reserve0);
+    console.log('context.reserve1', context.reserve1);
+    console.log('context.balance0', context.balance0);
+    console.log('context.balance1', context.balance1);
+    console.log('context.cAmount0In', context.cAmount0In);
+    console.log('context.cAmount1In', context.cAmount1In);
+    console.log('context.cK', context.cK);
+    console.log('context.amount0OutRemaining', context.amount0OutRemaining);
+    console.log('context.amount1OutRemaining', context.amount1OutRemaining);
+
+    context.balance0 = IERC20(context.token0).balanceOf(address(this));
+    context.balance1 = IERC20(context.token1).balanceOf(address(this));
+
+    uint amount0In = context.balance0 > context.reserve0 - context.amount0OutRemaining ? context.balance0 - (context.reserve0 - context.amount0OutRemaining) : 0;
+    uint amount1In = context.balance1 > context.reserve1 - context.amount1OutRemaining ? context.balance1 - (context.reserve1 - context.amount1OutRemaining) : 0;
+
+    console.log('amount0In pure', amount0In);
+    console.log('amount1In pure', amount1In);
+
+    require(amount0In > 0 || amount1In > 0, 'RemotePair: INSUFFICIENT_INPUT_AMOUNT');
+
     // transfer input token to concentrated pair
     if (context.cAmount0In > 0) IERC20(context.token0).safeTransfer(cPair, context.cAmount0In);
     if (context.cAmount1In > 0) IERC20(context.token1).safeTransfer(cPair, context.cAmount1In);
+    context.balance0 -= context.cAmount0In;
+    context.balance1 -= context.cAmount1In;
 
-    context.balance0 = IERC20(context.token0).balanceOf(address(this));
-    context.balance1 = IERC20(context.token1).balanceOf(address(this));
+    // accrue fees for tokens and move them out of pool
+    if (amount0In > 0) _updateFees(amount0In / swapFee, true);
+    if (amount1In > 0) _updateFees(amount1In / swapFee, false);
+    context.balance0 -= amount0In / swapFee;
+    context.balance1 -= amount1In / swapFee;
 
-    uint amount0In = context.balance0 > context.reserve0 - amount0Out - context.cAmount0In ? context.balance0 - (context.reserve0 - amount0Out - context.cAmount0In) : 0;
-    uint amount1In = context.balance1 > context.reserve1 - amount1Out - context.cAmount1In ? context.balance1 - (context.reserve1 - amount1Out - context.cAmount1In) : 0;
-    require(amount0In > 0 || amount1In > 0, 'RemotePair: INSUFFICIENT_INPUT_AMOUNT');
-
-    // accrue fees for token0 and move them out of pool
-    if (amount0In > 0) _updateFees((amount0In + context.cAmount0In) / swapFee, true);
-    // accrue fees for token1 and move them out of pool
-    if (amount1In > 0) _updateFees((amount1In + context.cAmount1In) / swapFee, false);
-    // since we removed tokens, we need to reconfirm balances,
-    // can also simply use previous balance - amountIn/ SWAP_FEE,
-    // but doing balanceOf again as safety check
-    context.balance0 = IERC20(context.token0).balanceOf(address(this));
-    context.balance1 = IERC20(context.token1).balanceOf(address(this));
     // The curve, either x3y+y3x for stable pools, or x*y for volatile pools
     require(_k(context.balance0, context.balance1) >= _k(context.reserve0, context.reserve1), 'RemotePair: K');
-
+    console.log('cK', ConcentratedPair(cPair).k());
+    console.log('cBal 0', IERC20(context.token0).balanceOf(cPair));
+    console.log('cBal 1', IERC20(context.token1).balanceOf(cPair));
+    // check concentrated pair invariant, should be the same or higher
+    require(ConcentratedPair(cPair).k() >= context.cK, 'RemotePair: cK');
 
     _update(context.balance0, context.balance1, context.reserve0, context.reserve1, amount0Out, amount1Out, amount0In, amount1In);
     _rebalanceConcentratedPair(context.balance0, context.balance1);

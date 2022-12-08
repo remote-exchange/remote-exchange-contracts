@@ -45,6 +45,22 @@ describe('ConcentratedPairTest', function() {
     await expect(pair.connect(owner2).setPrice(1)).revertedWith('!pair');
   });
 
+  it('k test', async function() {
+    await usdc1.mint(pair.address, parseUnits('2', 6));
+    await wbtc0.mint(pair.address, parseUnits('1', 8));
+
+    await pair.setPrice(parseUnits('2'));
+
+    const k = await pair.k();
+    expect(+formatUnits(k)).eq(4)
+
+    await usdc1.transferFrom(pair.address, owner.address, parseUnits('1', 6));
+    await wbtc0.mint(pair.address, parseUnits('0.5', 8));
+
+    const k2 = await pair.k();
+    expect(k).eq(k2);
+  });
+
   it('get amount out test', async function() {
     await usdc1.mint(pair.address, parseUnits('2', 6));
     await wbtc0.mint(pair.address, parseUnits('1', 8));
