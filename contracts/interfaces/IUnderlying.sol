@@ -13,5 +13,5 @@ interface IUnderlying {
 
   function transfer(address, uint) external returns (bool);
 
-  function decimals() external returns (uint8);
+  function decimals() external view returns (uint8);
 }

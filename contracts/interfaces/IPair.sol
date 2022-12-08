@@ -9,6 +9,9 @@ interface IPair {
     uint timestamp;
     uint reserve0Cumulative;
     uint reserve1Cumulative;
+    uint price0to1Cumulative;
+    uint volume0Cumulative;
+    uint volume1Cumulative;
   }
 
   function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external;

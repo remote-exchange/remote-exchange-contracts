@@ -76,7 +76,7 @@ export class TestHelper {
   ) {
     const name = await pair.name()
     const nonce = await pair.nonces(owner.address)
-    const chainId = await pair.chainId();
+    const chainId = (await pair.provider.getNetwork()).chainId;
 
     console.log('permit name', name)
     console.log('permit nonce', nonce.toString())

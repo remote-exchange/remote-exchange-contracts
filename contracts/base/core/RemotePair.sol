@@ -12,6 +12,7 @@ import "./PairFees.sol";
 import "../../lib/Math.sol";
 import "../../lib/SafeERC20.sol";
 import "../Reentrancy.sol";
+import "./ConcentratedPair.sol";
 
 // The base pair of pools, either stable or volatile
 contract RemotePair is IERC20, IPair, Reentrancy {
@@ -29,12 +30,11 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   mapping(address => mapping(address => uint)) public override allowance;
   mapping(address => uint) public override balanceOf;
 
-  bytes32 public immutable DOMAIN_SEPARATOR;
+  bytes32 internal immutable DOMAIN_SEPARATOR;
   // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-  bytes32 public constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
+  bytes32 internal constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
   uint internal constant _FEE_PRECISION = 1e32;
   mapping(address => uint) public nonces;
-  uint public immutable chainId;
 
   uint internal constant MINIMUM_LIQUIDITY = 10 ** 3;
   /// @dev 0.01% swap fee
@@ -43,14 +43,15 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   uint internal constant SWAP_FEE_VOLATILE = 2_000;
   /// @dev 0.1% max allowed swap fee
   uint internal constant SWAP_FEE_MAX = 1_000;
-  /// @dev Capture oracle reading every 30 minutes
-  uint internal constant PERIOD_SIZE = 1800;
+  /// @dev Capture oracle reading every 60 minutes
+  uint internal constant PERIOD_SIZE = 60 minutes;
 
 
   address public immutable override token0;
   address public immutable override token1;
   address public immutable fees;
   address public immutable factory;
+  address public immutable concentratedPair;
 
   Observation[] public observations;
 
@@ -62,14 +63,18 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   uint public reserve1;
   uint public blockTimestampLast;
 
-  uint public reserve0CumulativeLast;
-  uint public reserve1CumulativeLast;
+  uint internal reserve0CumulativeLast;
+  uint internal reserve1CumulativeLast;
+  uint internal price0to1Cumulative;
+  uint internal volume0Cumulative;
+  uint internal volume1Cumulative;
+  uint internal lastPrice0to1;
 
   // index0 and index1 are used to accumulate fees,
   // this is split out from normal trades to keep the swap "clean"
   // this further allows LP holders to easily claim fees for tokens they have/staked
-  uint public index0 = 0;
-  uint public index1 = 0;
+  uint internal index0 = 0;
+  uint internal index1 = 0;
 
   // position assigned to each LP to track their current index0 & index1 vs the global position
   mapping(address => uint) public supplyIndex0;
@@ -114,7 +119,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     decimals0 = 10 ** IUnderlying(_token0).decimals();
     decimals1 = 10 ** IUnderlying(_token1).decimals();
 
-    observations.push(Observation(block.timestamp, 0, 0));
+    observations.push(Observation(block.timestamp, 0, 0, 0, 0, 0));
 
     DOMAIN_SEPARATOR = keccak256(
       abi.encode(
@@ -125,7 +130,11 @@ contract RemotePair is IERC20, IPair, Reentrancy {
         address(this)
       )
     );
-    chainId = block.chainid;
+
+    address _concentratedPair = address(new ConcentratedPair(_token0, _token1));
+    concentratedPair = _concentratedPair;
+    IERC20(_token0).safeIncreaseAllowance(concentratedPair, type(uint).max);
+    IERC20(_token1).safeIncreaseAllowance(concentratedPair, type(uint).max);
   }
 
   function setSwapFee(uint value) external {
@@ -137,10 +146,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
   function observationLength() external view returns (uint) {
     return observations.length;
-  }
-
-  function lastObservation() public view returns (Observation memory) {
-    return observations[observations.length - 1];
   }
 
   function metadata() external view returns (
@@ -176,26 +181,21 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     }
   }
 
-  /// @dev Accrue fees on token0
-  function _update0(uint amount) internal {
+  /// @dev Accrue fees on token
+  function _updateFees(uint amount, bool isToken0) internal {
+    address token = isToken0 ? token0 : token1;
     // transfer the fees out to PairFees
-    IERC20(token0).safeTransfer(fees, amount);
+    IERC20(token).safeTransfer(fees, amount);
     // 1e32 adjustment is removed during claim
     uint _ratio = amount * _FEE_PRECISION / totalSupply;
     if (_ratio > 0) {
-      index0 += _ratio;
+      if (isToken0) {
+        index0 += _ratio;
+      } else {
+        index1 += _ratio;
+      }
     }
-    emit Fees(msg.sender, amount, 0);
-  }
-
-  /// @dev Accrue fees on token1
-  function _update1(uint amount) internal {
-    IERC20(token1).safeTransfer(fees, amount);
-    uint _ratio = amount * _FEE_PRECISION / totalSupply;
-    if (_ratio > 0) {
-      index1 += _ratio;
-    }
-    emit Fees(msg.sender, 0, amount);
+    emit Fees(msg.sender, isToken0 ? amount : 0, isToken0 ? 0 : amount);
   }
 
   /// @dev This function MUST be called on any balance changes,
@@ -233,7 +233,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     }
   }
 
-  function getReserves() public view override returns (
+  function getReserves() external view override returns (
     uint112 _reserve0,
     uint112 _reserve1,
     uint32 _blockTimestampLast
@@ -243,110 +243,154 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     _blockTimestampLast = uint32(blockTimestampLast);
   }
 
+  function cPairRatio() public view returns (uint) {
+    // todo probably smth more smart
+    return swapFee / 10;
+  }
+
+  function _rebalanceConcentratedPair(uint balance0, uint balance1) internal {
+    uint _cPairRatio = cPairRatio();
+
+    uint desired0 = balance0 / _cPairRatio;
+    uint desired1 = balance1 / _cPairRatio;
+    address _concentratedPair = concentratedPair;
+    uint cBalance0 = IERC20(token0).balanceOf(_concentratedPair);
+    uint cBalance1 = IERC20(token1).balanceOf(_concentratedPair);
+
+    if (cBalance0 < desired0 / 100) {
+      IERC20(token1).safeTransferFrom(_concentratedPair, address(this), cBalance1 / 2);
+      _internalSwap(
+        cBalance1 / 2,
+        false,
+        _concentratedPair,
+        balance0,
+        balance1
+      );
+    } else if (cBalance1 < desired1 / 100) {
+      IERC20(token0).safeTransferFrom(_concentratedPair, address(this), cBalance0 / 2);
+      _internalSwap(
+        cBalance0 / 2,
+        true,
+        _concentratedPair,
+        balance0,
+        balance1
+      );
+    }
+    // both lower or higher not suppose to be. if yes - just handle as usual, should be balanced in next calls
+
+    ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
+  }
+
+  function _internalSwap(
+    uint amountIn,
+    bool isTokenIn0,
+    address to,
+    uint _reserve0,
+    uint _reserve1
+  ) internal {
+    uint reserveOut = isTokenIn0 ? _reserve1 : _reserve0;
+    address tokenIn = isTokenIn0 ? token0 : token1;
+    address tokenOut = isTokenIn0 ? token1 : token0;
+    uint amountOut = _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
+    require(amountOut > 0 && amountOut < reserveOut, "!input");
+
+    IERC20(tokenOut).safeTransfer(to, amountOut);
+
+    uint _balance0 = IERC20(token0).balanceOf(address(this));
+    uint _balance1 = IERC20(token1).balanceOf(address(this));
+    // The curve, either x3y+y3x for stable pools, or x*y for volatile pools
+    require(_k(_balance0, _balance1) >= _k(_reserve0, _reserve1), "K");
+
+    reserve0 = _balance0;
+    reserve1 = _balance1;
+  }
+
+  function _amountsToPrice0to1(
+    uint amount0Out,
+    uint amount1Out,
+    uint amount0In,
+    uint amount1In
+  ) internal view returns (uint) {
+    if (amount0Out != 0 && amount1In != 0) {
+      return (amount0Out * 1e18 / 10 ** decimals0) * 1e18 / (amount1In * 1e18 / 10 ** decimals1);
+    } else if (amount1Out != 0 && amount0In != 0) {
+      return (amount0In * 1e18 / 10 ** decimals0) * 1e18 / (amount1Out * 1e18 / 10 ** decimals1);
+    }
+    return 0;
+  }
+
+  function getLastAveragePrice0to1() public view returns (uint) {
+    uint timeElapsed = blockTimestampLast - observations[observations.length - 1].timestamp;
+    return price0to1Cumulative / timeElapsed;
+  }
+
   /// @dev Update reserves and, on the first call per block, price accumulators
-  function _update(uint balance0, uint balance1, uint _reserve0, uint _reserve1) internal {
-    uint blockTimestamp = block.timestamp;
-    uint timeElapsed = blockTimestamp - blockTimestampLast;
+  function _update(
+    uint balance0,
+    uint balance1,
+    uint _reserve0,
+    uint _reserve1,
+    uint amount0Out,
+    uint amount1Out,
+    uint amount0In,
+    uint amount1In
+  ) internal {
+    Observation memory point = observations[observations.length - 1];
+    uint timeElapsed = block.timestamp - blockTimestampLast;
+
+    uint _price0to1 = _amountsToPrice0to1(
+      amount0Out,
+      amount1Out,
+      amount0In,
+      amount1In
+    );
+    uint _volume0 = amount0In + amount0Out;
+    uint _volume1 = amount1In + amount1Out;
+
+    lastPrice0to1 = _price0to1;
+
     // overflow is desired
+  unchecked {
     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
-    unchecked {
+      if (_price0to1 != 0) price0to1Cumulative += _price0to1 * timeElapsed;
       reserve0CumulativeLast += _reserve0 * timeElapsed;
       reserve1CumulativeLast += _reserve1 * timeElapsed;
     }
+
+    if (_volume0 != 0) volume0Cumulative += _volume0;
+    if (_volume1 != 0) volume1Cumulative += _volume1;
+  }
+    timeElapsed = block.timestamp - point.timestamp;
+    // compare the last observation with current timestamp,
+    // if greater than 60 minutes, record a new event
+    if (timeElapsed > PERIOD_SIZE) {
+      observations.push(Observation({
+      timestamp : block.timestamp,
+      reserve0Cumulative : reserve0CumulativeLast,
+      reserve1Cumulative : reserve1CumulativeLast,
+      price0to1Cumulative : price0to1Cumulative,
+      volume0Cumulative : volume0Cumulative,
+      volume1Cumulative : volume1Cumulative
+      }));
+      delete volume0Cumulative;
+      delete volume1Cumulative;
     }
 
-    Observation memory _point = lastObservation();
-    timeElapsed = blockTimestamp - _point.timestamp;
-    // compare the last observation with current timestamp,
-    // if greater than 30 minutes, record a new event
-    if (timeElapsed > PERIOD_SIZE) {
-      observations.push(Observation(blockTimestamp, reserve0CumulativeLast, reserve1CumulativeLast));
-    }
     reserve0 = balance0;
     reserve1 = balance1;
-    blockTimestampLast = blockTimestamp;
+    blockTimestampLast = block.timestamp;
     emit Sync(reserve0, reserve1);
   }
 
-  /// @dev Produces the cumulative price using counterfactuals to save gas and avoid a call to sync.
-  function currentCumulativePrices() public view returns (
-    uint reserve0Cumulative,
-    uint reserve1Cumulative,
-    uint blockTimestamp
-  ) {
-    blockTimestamp = block.timestamp;
-    reserve0Cumulative = reserve0CumulativeLast;
-    reserve1Cumulative = reserve1CumulativeLast;
-
-    // if time has elapsed since the last update on the pair, mock the accumulated price values
-    (uint _reserve0, uint _reserve1, uint _blockTimestampLast) = getReserves();
-    if (_blockTimestampLast != blockTimestamp) {
-      // subtraction overflow is desired
-      uint timeElapsed = blockTimestamp - _blockTimestampLast;
-    unchecked {
-      reserve0Cumulative += _reserve0 * timeElapsed;
-      reserve1Cumulative += _reserve1 * timeElapsed;
-    }
-    }
-  }
-
-  /// @dev Gives the current twap price measured from amountIn * tokenIn gives amountOut
-  function current(address tokenIn, uint amountIn) external view returns (uint amountOut) {
-    Observation memory _observation = lastObservation();
-    (uint reserve0Cumulative, uint reserve1Cumulative,) = currentCumulativePrices();
-    if (block.timestamp == _observation.timestamp) {
-      _observation = observations[observations.length - 2];
-    }
-
-    uint timeElapsed = block.timestamp - _observation.timestamp;
-    uint _reserve0 = (reserve0Cumulative - _observation.reserve0Cumulative) / timeElapsed;
-    uint _reserve1 = (reserve1Cumulative - _observation.reserve1Cumulative) / timeElapsed;
-    amountOut = _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
-  }
-
-  /// @dev As per `current`, however allows user configured granularity, up to the full window size
-  function quote(address tokenIn, uint amountIn, uint granularity)
-  external view returns (uint amountOut) {
-    uint [] memory _prices = sample(tokenIn, amountIn, granularity, 1);
-    uint priceAverageCumulative;
-    for (uint i = 0; i < _prices.length; i++) {
-      priceAverageCumulative += _prices[i];
-    }
-    return priceAverageCumulative / granularity;
-  }
-
-  /// @dev Returns a memory set of twap prices
-  function prices(address tokenIn, uint amountIn, uint points)
-  external view returns (uint[] memory) {
-    return sample(tokenIn, amountIn, points, 1);
-  }
-
-  function sample(address tokenIn, uint amountIn, uint points, uint window)
-  public view returns (uint[] memory) {
-    uint[] memory _prices = new uint[](points);
-
-    uint length = observations.length - 1;
-    uint i = length - (points * window);
-    uint nextIndex = 0;
-    uint index = 0;
-
-    for (; i < length; i += window) {
-      nextIndex = i + window;
-      uint timeElapsed = observations[nextIndex].timestamp - observations[i].timestamp;
-      uint _reserve0 = (observations[nextIndex].reserve0Cumulative - observations[i].reserve0Cumulative) / timeElapsed;
-      uint _reserve1 = (observations[nextIndex].reserve1Cumulative - observations[i].reserve1Cumulative) / timeElapsed;
-      _prices[index] = _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
-      index = index + 1;
-    }
-    return _prices;
-  }
-
   /// @dev This low-level function should be called from a contract which performs important safety checks
-  ///      standard uniswap v2 implementation
   function mint(address to) external lock override returns (uint liquidity) {
+    (address _token0, address _token1) = (token0, token1);
     (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
-    uint _balance0 = IERC20(token0).balanceOf(address(this));
-    uint _balance1 = IERC20(token1).balanceOf(address(this));
+    address cPair = concentratedPair;
+    uint cBalance0 = IERC20(_token0).balanceOf(cPair);
+    uint cBalance1 = IERC20(_token1).balanceOf(cPair);
+    uint _balance0 = IERC20(_token0).balanceOf(address(this));
+    uint _balance1 = IERC20(_token1).balanceOf(address(this));
     uint _amount0 = _balance0 - _reserve0;
     uint _amount1 = _balance1 - _reserve1;
 
@@ -357,20 +401,27 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       // permanently lock the first MINIMUM_LIQUIDITY tokens
       _mint(address(0), MINIMUM_LIQUIDITY);
     } else {
-      liquidity = Math.min(_amount0 * _totalSupply / _reserve0, _amount1 * _totalSupply / _reserve1);
+      liquidity = Math.min(_amount0 * _totalSupply / (_reserve0 + cBalance0), _amount1 * _totalSupply / (_reserve1 + cBalance1));
     }
     require(liquidity > 0, 'RemotePair: INSUFFICIENT_LIQUIDITY_MINTED');
     _mint(to, liquidity);
 
-    _update(_balance0, _balance1, _reserve0, _reserve1);
+    uint _cRatio = cPairRatio();
+    IERC20(_token0).safeTransfer(cPair, _amount0 / _cRatio);
+    IERC20(_token1).safeTransfer(cPair, _amount1 / _cRatio);
+
+    _update(_balance0 - (_amount0 / _cRatio), _balance1 - (_amount1 / _cRatio), _reserve0, _reserve1, 0, 0, 0, 0);
     emit Mint(msg.sender, _amount0, _amount1);
   }
 
   /// @dev This low-level function should be called from a contract which performs important safety checks
   ///      standard uniswap v2 implementation
   function burn(address to) external lock override returns (uint amount0, uint amount1) {
-    (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
     (address _token0, address _token1) = (token0, token1);
+    (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
+    address cPair = concentratedPair;
+    uint cBalance0 = IERC20(_token0).balanceOf(cPair);
+    uint cBalance1 = IERC20(_token1).balanceOf(cPair);
     uint _balance0 = IERC20(_token0).balanceOf(address(this));
     uint _balance1 = IERC20(_token1).balanceOf(address(this));
     uint _liquidity = balanceOf[address(this)];
@@ -378,59 +429,110 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     // gas savings, must be defined here since totalSupply can update in _mintFee
     uint _totalSupply = totalSupply;
     // using balances ensures pro-rata distribution
-    amount0 = _liquidity * _balance0 / _totalSupply;
+    amount0 = _liquidity * (_balance0 + cBalance0) / _totalSupply;
     // using balances ensures pro-rata distribution
-    amount1 = _liquidity * _balance1 / _totalSupply;
+    amount1 = _liquidity * (_balance1 + cBalance1) / _totalSupply;
     require(amount0 > 0 && amount1 > 0, 'RemotePair: INSUFFICIENT_LIQUIDITY_BURNED');
     _burn(address(this), _liquidity);
-    IERC20(_token0).safeTransfer(to, amount0);
-    IERC20(_token1).safeTransfer(to, amount1);
+
+    _transferReserve(_token0, to, amount0, _balance0, cBalance0, cPair);
+    _transferReserve(_token1, to, amount1, _balance1, cBalance1, cPair);
+
     _balance0 = IERC20(_token0).balanceOf(address(this));
     _balance1 = IERC20(_token1).balanceOf(address(this));
 
-    _update(_balance0, _balance1, _reserve0, _reserve1);
+    _update(_balance0, _balance1, _reserve0, _reserve1, 0, 0, 0, 0);
     emit Burn(msg.sender, amount0, amount1, to);
+  }
+
+  function _transferReserve(address token, address to, uint amount, uint localBalance, uint cBalance, address cPair) internal {
+    uint ratio = cBalance * 1e18 / (localBalance + cBalance);
+    uint cAmount = amount * ratio / 1e18;
+    uint lAmount = amount - cAmount;
+    IERC20(token).safeTransfer(to, lAmount);
+    IERC20(token).safeTransferFrom(cPair, to, cAmount);
+  }
+
+  struct SwapContext {
+    uint amountOut0Original;
+    uint amountOut1Original;
+    uint reserve0;
+    uint reserve1;
+    uint balance0;
+    uint balance1;
+    uint cAmount0In;
+    uint cAmount1In;
+    uint amount0OutRemaining;
+    uint amount1OutRemaining;
+    address token0;
+    address token1;
   }
 
   /// @dev This low-level function should be called from a contract which performs important safety checks
   function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external override lock {
     require(!IFactory(factory).isPaused(), "RemotePair: PAUSE");
     require(amount0Out > 0 || amount1Out > 0, 'RemotePair: INSUFFICIENT_OUTPUT_AMOUNT');
-    (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, 'RemotePair: INSUFFICIENT_LIQUIDITY');
-    uint _balance0;
-    uint _balance1;
-    {// scope for _token{0,1}, avoids stack too deep errors
-      (address _token0, address _token1) = (token0, token1);
-      require(to != _token0 && to != _token1, 'RemotePair: INVALID_TO');
-      // optimistically transfer tokens
-      if (amount0Out > 0) IERC20(_token0).safeTransfer(to, amount0Out);
-      // optimistically transfer tokens
-      if (amount1Out > 0) IERC20(_token1).safeTransfer(to, amount1Out);
-      // callback, used for flash loans
-      if (data.length > 0) ICallee(to).hook(msg.sender, amount0Out, amount1Out, data);
-      _balance0 = IERC20(_token0).balanceOf(address(this));
-      _balance1 = IERC20(_token1).balanceOf(address(this));
+
+    SwapContext memory context = new SwapContext[](1)[0];
+    context.amountOut0Original = amount0Out;
+    context.amountOut1Original = amount1Out;
+    context.reserve0 = reserve0;
+    context.reserve1 = reserve1;
+    context.token0 = token0;
+    context.token1 = token1;
+
+    require(to != context.token0 && to != context.token1, 'RemotePair: INVALID_TO');
+
+    address cPair = concentratedPair;
+    (
+    context.cAmount0In,
+    context.cAmount1In,
+    context.amount0OutRemaining,
+    context.amount1OutRemaining
+    ) = ConcentratedPair(cPair).getAmountIn(amount0Out, amount1Out);
+    // optimistically transfer tokens from concentrated pair
+    if (amount0Out - context.amount0OutRemaining > 0) {
+      IERC20(context.token0).safeTransferFrom(cPair, to, amount0Out - context.amount0OutRemaining);
     }
-    uint amount0In = _balance0 > _reserve0 - amount0Out ? _balance0 - (_reserve0 - amount0Out) : 0;
-    uint amount1In = _balance1 > _reserve1 - amount1Out ? _balance1 - (_reserve1 - amount1Out) : 0;
-    require(amount0In > 0 || amount1In > 0, 'RemotePair: INSUFFICIENT_INPUT_AMOUNT');
-    {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
-      (address _token0, address _token1) = (token0, token1);
-      // accrue fees for token0 and move them out of pool
-      if (amount0In > 0) _update0(amount0In / swapFee);
-      // accrue fees for token1 and move them out of pool
-      if (amount1In > 0) _update1(amount1In / swapFee);
-      // since we removed tokens, we need to reconfirm balances,
-      // can also simply use previous balance - amountIn/ SWAP_FEE,
-      // but doing balanceOf again as safety check
-      _balance0 = IERC20(_token0).balanceOf(address(this));
-      _balance1 = IERC20(_token1).balanceOf(address(this));
-      // The curve, either x3y+y3x for stable pools, or x*y for volatile pools
-      require(_k(_balance0, _balance1) >= _k(_reserve0, _reserve1), 'RemotePair: K');
+    if (amount1Out - context.amount1OutRemaining > 0) {
+      IERC20(context.token1).safeTransferFrom(cPair, to, amount1Out - context.amount1OutRemaining);
     }
 
-    _update(_balance0, _balance1, _reserve0, _reserve1);
+    require(context.amount0OutRemaining < context.reserve0
+      && context.amount1OutRemaining < context.reserve1, 'RemotePair: INSUFFICIENT_LIQUIDITY');
+    // optimistically transfer tokens from this contract
+    if (context.amount0OutRemaining > 0) IERC20(context.token0).safeTransfer(to, context.amount0OutRemaining);
+    if (context.amount1OutRemaining > 0) IERC20(context.token1).safeTransfer(to, context.amount1OutRemaining);
+
+    // callback, used for flash loans
+    if (data.length > 0) ICallee(to).hook(msg.sender, amount0Out, amount1Out, data);
+
+    // transfer input token to concentrated pair
+    if (context.cAmount0In > 0) IERC20(context.token0).safeTransfer(cPair, context.cAmount0In);
+    if (context.cAmount1In > 0) IERC20(context.token1).safeTransfer(cPair, context.cAmount1In);
+
+    context.balance0 = IERC20(context.token0).balanceOf(address(this));
+    context.balance1 = IERC20(context.token1).balanceOf(address(this));
+
+    uint amount0In = context.balance0 > context.reserve0 - amount0Out - context.cAmount0In ? context.balance0 - (context.reserve0 - amount0Out - context.cAmount0In) : 0;
+    uint amount1In = context.balance1 > context.reserve1 - amount1Out - context.cAmount1In ? context.balance1 - (context.reserve1 - amount1Out - context.cAmount1In) : 0;
+    require(amount0In > 0 || amount1In > 0, 'RemotePair: INSUFFICIENT_INPUT_AMOUNT');
+
+    // accrue fees for token0 and move them out of pool
+    if (amount0In > 0) _updateFees((amount0In + context.cAmount0In) / swapFee, true);
+    // accrue fees for token1 and move them out of pool
+    if (amount1In > 0) _updateFees((amount1In + context.cAmount1In) / swapFee, false);
+    // since we removed tokens, we need to reconfirm balances,
+    // can also simply use previous balance - amountIn/ SWAP_FEE,
+    // but doing balanceOf again as safety check
+    context.balance0 = IERC20(context.token0).balanceOf(address(this));
+    context.balance1 = IERC20(context.token1).balanceOf(address(this));
+    // The curve, either x3y+y3x for stable pools, or x*y for volatile pools
+    require(_k(context.balance0, context.balance1) >= _k(context.reserve0, context.reserve1), 'RemotePair: K');
+
+
+    _update(context.balance0, context.balance1, context.reserve0, context.reserve1, amount0Out, amount1Out, amount0In, amount1In);
+    _rebalanceConcentratedPair(context.balance0, context.balance1);
     emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
   }
 
@@ -443,11 +545,12 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
   // force reserves to match balances
   function sync() external lock {
+    _rebalanceConcentratedPair(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)));
     _update(
       IERC20(token0).balanceOf(address(this)),
       IERC20(token1).balanceOf(address(this)),
       reserve0,
-      reserve1
+      reserve1, 0, 0, 0, 0
     );
   }
 
@@ -478,10 +581,18 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   }
 
   function getAmountOut(uint amountIn, address tokenIn) external view override returns (uint) {
-    (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
     // remove fee from amount received
     amountIn -= amountIn / swapFee;
-    return _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
+    (
+    uint amountOut,
+    uint amountInRemaining
+    ) = ConcentratedPair(concentratedPair).getAmountOut(amountIn, tokenIn);
+
+    if (amountInRemaining != 0) {
+      (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
+      amountOut += _getAmountOut(amountInRemaining, tokenIn, _reserve0, _reserve1);
+    }
+    return amountOut;
   }
 
   function _getAmountOut(uint amountIn, address tokenIn, uint _reserve0, uint _reserve1) internal view returns (uint) {

@@ -4,21 +4,21 @@ import {
   RemotePair,
   RemoteRouter01,
   IERC20__factory,
-  Token
-} from "../../../typechain";
-import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
-import {ethers} from "hardhat";
-import chai from "chai";
-import {Deploy} from "../../../scripts/deploy/Deploy";
-import {TimeUtils} from "../../TimeUtils";
-import {TestHelper} from "../../TestHelper";
-import {BigNumber, utils} from "ethers";
-import {formatUnits, parseUnits} from "ethers/lib/utils";
-import {Misc} from "../../../scripts/Misc";
+  Token,
+} from '../../../typechain';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { ethers } from 'hardhat';
+import chai from 'chai';
+import { Deploy } from '../../../scripts/deploy/Deploy';
+import { TimeUtils } from '../../TimeUtils';
+import { TestHelper } from '../../TestHelper';
+import { BigNumber, utils } from 'ethers';
+import { formatUnits, parseUnits } from 'ethers/lib/utils';
+import { Misc } from '../../../scripts/Misc';
 
-const {expect} = chai;
+const { expect } = chai;
 
-describe("pair tests", function () {
+describe('pair tests', function() {
 
   let snapshotBefore: string;
   let snapshot: string;
@@ -39,11 +39,11 @@ describe("pair tests", function () {
   let pair2: RemotePair;
 
 
-  before(async function () {
+  before(async function() {
     snapshotBefore = await TimeUtils.snapshot();
     [owner, owner2, owner3] = await ethers.getSigners();
     wmatic = await Deploy.deployContract(owner, 'Token', 'WMATIC', 'WMATIC', 18, owner.address) as Token;
-    await wmatic.mint(owner.address, parseUnits('10000'))
+    await wmatic.mint(owner.address, parseUnits('10000'));
     factory = await Deploy.deployRemoteFactory(owner);
     router = await Deploy.deployRemoteRouter01(owner, factory.address, wmatic.address);
 
@@ -60,7 +60,7 @@ describe("pair tests", function () {
       ust.address,
       utils.parseUnits('1'),
       utils.parseUnits('1', 6),
-      true
+      true,
     );
     pair2 = await TestHelper.addLiquidity(
       factory,
@@ -70,87 +70,29 @@ describe("pair tests", function () {
       wmatic.address,
       utils.parseUnits('1'),
       utils.parseUnits('1'),
-      true
+      true,
     );
     testHelper = await Deploy.deployContract(owner, 'ContractTestHelper') as ContractTestHelper;
   });
 
-  after(async function () {
+  after(async function() {
     await TimeUtils.rollback(snapshotBefore);
   });
 
 
-  beforeEach(async function () {
+  beforeEach(async function() {
     snapshot = await TimeUtils.snapshot();
   });
 
-  afterEach(async function () {
+  afterEach(async function() {
     await TimeUtils.rollback(snapshot);
   });
 
-  it("observationLength test", async function () {
+  it('observationLength test', async function() {
     expect(await pair.observationLength()).is.eq(1);
   });
 
-  it("currentCumulativePrices test", async function () {
-    await mim.approve(router.address, parseUnits('1'));
-    await router.swapExactTokensForTokens(parseUnits('0.01'), BigNumber.from(0), [{
-      from: mim.address,
-      to: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-    expect((await pair.currentCumulativePrices())[0]).is.not.eq(0);
-    await pair.sync();
-    expect((await pair.currentCumulativePrices())[0]).is.not.eq(0);
-  });
-
-  it("current twap price test", async function () {
-    await mim.approve(router.address, parseUnits('1'));
-    await router.swapExactTokensForTokens(parseUnits('0.01'), BigNumber.from(0), [{
-      from: mim.address,
-      to: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-    expect(await pair.current(mim.address, parseUnits('1'))).is.eq(BigNumber.from(753733));
-    await pair.sync();
-    expect(await pair.current(mim.address, parseUnits('1'))).is.above(BigNumber.from(752800));
-    await TimeUtils.advanceBlocksOnTs(60 * 60 * 24);
-    await testHelper.pairCurrentTwice(pair.address, mim.address, parseUnits('1'));
-  });
-
-  it("current twap price test with quote", async function () {
-    await mim.approve(router.address, parseUnits('1'));
-    await router.swapExactTokensForTokens(parseUnits('0.01'), BigNumber.from(0), [{
-      from: mim.address,
-      to: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-    await TimeUtils.advanceBlocksOnTs(60 * 60 * 24);
-    await router.swapExactTokensForTokens(parseUnits('0.01'), BigNumber.from(0), [{
-      from: mim.address,
-      to: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-    expect(await pair.quote(mim.address, parseUnits('1'), 1)).is.eq(BigNumber.from(747254));
-  });
-
-  it("current twap price test with points", async function () {
-    await mim.approve(router.address, parseUnits('1'));
-    await router.swapExactTokensForTokens(parseUnits('0.01'), BigNumber.from(0), [{
-      from: mim.address,
-      to: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-    await TimeUtils.advanceBlocksOnTs(60 * 60 * 24);
-    await router.swapExactTokensForTokens(parseUnits('0.01'), BigNumber.from(0), [{
-      from: mim.address,
-      to: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-    expect((await pair.prices(mim.address, parseUnits('1'), 1))[0]).is.eq(BigNumber.from(747254));
-  });
-
-  it("burn test", async function () {
+  it('burn test', async function() {
     await pair.approve(router.address, parseUnits('10000'));
     await router.removeLiquidity(
       mim.address,
@@ -160,12 +102,12 @@ describe("pair tests", function () {
       0,
       0,
       owner.address,
-      999999999999
+      999999999999,
     );
     expect(await pair.balanceOf(owner.address)).is.eq(0);
   });
 
-  it("skim test", async function () {
+  it('skim test', async function() {
     const balA = await mim.balanceOf(pair.address);
     const balB = await ust.balanceOf(pair.address);
     await mim.transfer(pair.address, parseUnits('0.001'));
@@ -175,7 +117,7 @@ describe("pair tests", function () {
     expect(await ust.balanceOf(pair.address)).is.eq(balB);
   });
 
-  it("sync test", async function () {
+  it('sync test', async function() {
     await mim.transfer(pair.address, parseUnits('0.001'));
     await ust.transfer(pair.address, parseUnits('0.001', 6));
     await pair.sync();
@@ -183,7 +125,7 @@ describe("pair tests", function () {
     expect(await pair.reserve1()).is.not.eq(0);
   });
 
-  it("metadata test", async function () {
+  it('metadata test', async function() {
     const d = await pair.metadata();
     expect(d.dec0).is.not.eq(0);
     expect(d.dec1).is.not.eq(0);
@@ -194,47 +136,52 @@ describe("pair tests", function () {
     expect(d.t1).is.not.eq(Misc.ZERO_ADDRESS);
   });
 
-  it("very little swap", async function () {
+  it('very little swap', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await wmatic.approve(router.address, parseUnits('1'));
-    await router.swapExactTokensForTokens(2, BigNumber.from(0), [{
-      from: mim.address,
-      to: wmatic.address,
-      stable: true,
-    }], owner.address, 9999999999);
-    await router.swapExactTokensForTokens(2, BigNumber.from(0), [{
-      to: mim.address,
-      from: wmatic.address,
-      stable: true,
-    }], owner.address, 9999999999);
+    await router.swapExactTokensForTokens(2, BigNumber.from(0), [
+      {
+        from: mim.address,
+        to: wmatic.address,
+        stable: true,
+      },
+    ], owner.address, 9999999999);
+    await router.swapExactTokensForTokens(2, BigNumber.from(0), [
+      {
+        to: mim.address,
+        from: wmatic.address,
+        stable: true,
+      },
+    ], owner.address, 9999999999);
   });
 
-  it("insufficient liquidity minted revert", async function () {
+  it('insufficient liquidity minted revert', async function() {
     await expect(pair2.mint(owner.address)).revertedWith('RemotePair: INSUFFICIENT_LIQUIDITY_MINTED');
   });
 
-  it("insufficient liquidity burned revert", async function () {
+  it('insufficient liquidity burned revert', async function() {
     await expect(pair2.burn(owner.address)).revertedWith('RemotePair: INSUFFICIENT_LIQUIDITY_BURNED');
   });
 
-  it("swap on pause test", async function () {
+  it('swap on pause test', async function() {
     await factory.setPause(true);
     await expect(pair2.swap(1, 1, owner.address, '0x')).revertedWith('PAUSE');
   });
 
-  it("insufficient output amount", async function () {
+  it('insufficient output amount', async function() {
     await expect(pair2.swap(0, 0, owner.address, '0x')).revertedWith('RemotePair: INSUFFICIENT_OUTPUT_AMOUNT');
   });
 
-  it("insufficient liquidity", async function () {
-    await expect(pair2.swap(Misc.MAX_UINT, Misc.MAX_UINT, owner.address, '0x')).revertedWith('RemotePair: INSUFFICIENT_LIQUIDITY');
+  it('insufficient liquidity', async function() {
+    await expect(pair2.swap(Misc.MAX_UINT, Misc.MAX_UINT, owner.address, '0x'))
+      .revertedWith('RemotePair: INSUFFICIENT_LIQUIDITY');
   });
 
-  it("invalid to", async function () {
+  it('invalid to', async function() {
     await expect(pair2.swap(1, 1, wmatic.address, '0x')).revertedWith('RemotePair: INVALID_TO');
   });
 
-  it("flash swap", async function () {
+  it('flash swap', async function() {
     const amount = parseUnits('0.1');
     // send fees + a bit more for covering a gap. it will be sent back after the swap
     await mim.transfer(pair2.address, amount.div(1950));
@@ -244,115 +191,117 @@ describe("pair tests", function () {
       amount,
       amount,
       testHelper.address,
-      ethers.utils.defaultAbiCoder.encode(['address'], [pair2.address])
+      ethers.utils.defaultAbiCoder.encode(['address'], [pair2.address]),
     );
     const r0 = await pair.getReserves();
     expect(r[0]).eq(r0[0]);
     expect(r[1]).eq(r0[1]);
   });
 
-  it("reentrancy should revert", async function () {
+  it('reentrancy should revert', async function() {
     await expect(pair2.swap(
       10000,
       10000,
       ust.address,
-      ethers.utils.defaultAbiCoder.encode(['address'], [pair2.address])
+      ethers.utils.defaultAbiCoder.encode(['address'], [pair2.address]),
     )).revertedWith('Reentrant call');
   });
 
-  it("insufficient input amount", async function () {
-    await expect(pair2.swap(10000000, 1000000, owner.address, '0x')).revertedWith('RemotePair: INSUFFICIENT_INPUT_AMOUNT');
+  it('insufficient input amount', async function() {
+    await expect(pair2.swap(10000000, 1000000, owner.address, '0x'))
+      .revertedWith('RemotePair: INSUFFICIENT_INPUT_AMOUNT');
   });
 
-  it("k revert", async function () {
+  it('k revert', async function() {
     await mim.transfer(pair2.address, 1);
     await expect(pair2.swap(10000000, 1000000, owner.address, '0x')).revertedWith('RemotePair: K');
   });
 
-  it("approve with zero adr revert", async function () {
+  it('approve with zero adr revert', async function() {
     await expect(pair2.approve(Misc.ZERO_ADDRESS, 1)).revertedWith('Approve to the zero address');
   });
 
-  it("permit expire", async function () {
+  it('permit expire', async function() {
     const {
       v,
       r,
-      s
+      s,
     } = await TestHelper.permitForPair(
       owner,
       pair2,
       pair2.address,
-      parseUnits("1"),
-      '1'
+      parseUnits('1'),
+      '1',
     );
-    await expect(pair2.permit(owner.address, pair2.address, parseUnits("1"), '1', v, r, s)).revertedWith('EXPIRED');
+    await expect(pair2.permit(owner.address, pair2.address, parseUnits('1'), '1', v, r, s)).revertedWith('EXPIRED');
   });
 
-  it("permit invalid signature", async function () {
+  it('permit invalid signature', async function() {
     const {
       v,
       r,
-      s
+      s,
     } = await TestHelper.permitForPair(
       owner,
       pair2,
       pair2.address,
-      parseUnits("1"),
-      '999999999999'
+      parseUnits('1'),
+      '999999999999',
     );
-    await expect(pair2.permit(pair2.address, pair2.address, parseUnits("1"), '999999999999', v, r, s)).revertedWith('INVALID_SIGNATURE');
+    await expect(pair2.permit(pair2.address, pair2.address, parseUnits('1'), '999999999999', v, r, s))
+      .revertedWith('INVALID_SIGNATURE');
   });
 
-  it("transfer to himself without approve", async function () {
+  it('transfer to himself without approve', async function() {
     await pair2.transferFrom(owner.address, owner.address, 1);
   });
 
-  it("transfer without allowence revert", async function () {
+  it('transfer without allowence revert', async function() {
     await expect(pair2.transferFrom(owner2.address, owner.address, 1)).revertedWith('Insufficient allowance');
   });
 
-  it("transfer to zero address should be reverted", async function () {
+  it('transfer to zero address should be reverted', async function() {
     await expect(pair2.transferFrom(owner.address, Misc.ZERO_ADDRESS, 1)).revertedWith('Transfer to the zero address');
   });
 
-  it("transfer exceed balance", async function () {
+  it('transfer exceed balance', async function() {
     await expect(pair2.transfer(owner.address, parseUnits('999999'))).revertedWith('Transfer amount exceeds balance');
   });
 
-  it("getAmountOut loop test", async function () {
+  it('getAmountOut loop test', async function() {
     await prices(owner, factory, router, true);
   });
 
-  it("set fees test", async function () {
+  it('set fees test', async function() {
     await factory.setSwapFee(pair.address, 100_000);
-    expect(await pair.swapFee()).eq(100_000)
+    expect(await pair.swapFee()).eq(100_000);
   });
 
-  it("set fees revert too high", async function () {
+  it('set fees revert too high', async function() {
     await expect(factory.setSwapFee(pair.address, 999)).revertedWith('max');
   });
 
-  it("set fees revert not factory", async function () {
+  it('set fees revert not factory', async function() {
     await expect(pair.setSwapFee(1000)).revertedWith('!factory');
   });
 
-  it("swap loop test", async function () {
+  it('swap loop test', async function() {
     const loop1 = await swapInLoop(owner, factory, router, 1);
     const loop100 = await swapInLoop(owner, factory, router, 10);
     expect(loop100.sub(loop1)).is.below(10);
   });
 
-  it("swap gas", async function () {
+  it('swap gas', async function() {
     const token0 = await pair.token0();
     const token1 = await pair.token1();
     await IERC20__factory.connect(token0, owner).transfer(pair.address, 1000000);
     await IERC20__factory.connect(token1, owner).transfer(pair.address, 1000000);
-    const tx = await pair.swap(0, 10, owner.address, '0x')
-    const receipt = await tx.wait()
+    const tx = await pair.swap(0, 10, owner.address, '0x');
+    const receipt = await tx.wait();
     expect(receipt.gasUsed).is.below(BigNumber.from(280000));
   });
 
-  it("price without impact", async function () {
+  it('price without impact', async function() {
     const p = await TestHelper.addLiquidity(
       factory,
       router,
@@ -361,14 +310,8 @@ describe("pair tests", function () {
       dai.address,
       utils.parseUnits('1000000000'),
       utils.parseUnits('2000000000'),
-      true
+      true,
     );
-
-    // console.log('f normal', await p.f(parseUnits('1'), parseUnits('1')));
-    // console.log('f very big', await p.f(parseUnits('1', 28), parseUnits('1', 28)));
-    // console.log('f 100', await p.f(100, 100));
-    // console.log('f 3', await p.f(3, 3));
-    // console.log('f 2', await p.f(2, 2));
 
     // const priceMim = await p.priceWithoutImpact(mim.address)
     // console.log('PRICE MIM', priceMim.toString(), formatUnits(priceMim));
@@ -380,114 +323,44 @@ describe("pair tests", function () {
     console.log('PRICE DAI imp', formatUnits(priceDaiImp));
 
     const reserves = await p.getReserves();
-    console.log('price0', getStablePrice(+formatUnits(reserves[0]), +formatUnits(reserves[1])))
-    console.log('price1', getStablePrice(+formatUnits(reserves[1]), +formatUnits(reserves[0])))
+    console.log('price0', getStablePrice(+formatUnits(reserves[0]), +formatUnits(reserves[1])));
+    console.log('price1', getStablePrice(+formatUnits(reserves[1]), +formatUnits(reserves[0])));
 
     const balance = await dai.balanceOf(owner.address);
     await mim.transfer(p.address, parseUnits('1'));
     const out = await p.getAmountOut(parseUnits('1'), mim.address);
-    await p.swap(0, out, owner.address, '0x')
-    console.log('TRADE pure:', formatUnits((await dai.balanceOf(owner.address)).sub(balance)), formatUnits(out))
-    expect(await dai.balanceOf(owner.address)).eq(balance.add(out))
+    await p.swap(0, out, owner.address, '0x');
+    console.log('TRADE pure:', formatUnits((await dai.balanceOf(owner.address)).sub(balance)), formatUnits(out));
+    expect(await dai.balanceOf(owner.address)).eq(balance.add(out));
 
     await mim.transfer(p.address, parseUnits('1'));
-    await expect(p.swap(0, (await p.getAmountOut(parseUnits('1'), mim.address)).add(1), owner.address, '0x')).revertedWith('RemotePair: K')
-
-    // balance = await dai.balanceOf(owner.address);
-    // reserves = await p.getReserves();
-    // out = parseUnits(getAmountOut(10000, +formatUnits(reserves[0]), +formatUnits(reserves[1])).toFixed(18))
-    // console.log('OUT offchain', formatUnits(out))
-    // console.log('OUT chain', formatUnits(await p.getAmountOut(parseUnits('10000'), mim.address)))
-    // await mim.transfer(p.address, parseUnits('10000'));
-    // await p.swap(0, out, owner.address, '0x')
-    // console.log('TRADE offchain:', formatUnits((await dai.balanceOf(owner.address)).sub(balance)), formatUnits(out))
-    // expect(await dai.balanceOf(owner.address)).eq(balance.add(out))
-
-
-    // reserves = await p.getReserves();
-    // await mim.transfer(p.address, parseUnits('1'));
-    // out = parseUnits(getAmountOut(1, +formatUnits(reserves[0]), +formatUnits(reserves[1])).toFixed(18)).sub(1_000_000_000_000);
-    // console.log('OUT offchain', formatUnits(out))
-    // console.log('OUT chain', formatUnits(await p.getAmountOut(parseUnits('1'), mim.address)))
-    // await p.swap(0, out, owner.address, '0x')
-    // await expect(p.swap(0, out, owner.address, '0x')).revertedWith('RemotePair: K')
-
+    await expect(p.swap(0, (await p.getAmountOut(parseUnits('1'), mim.address)).add(1), owner.address, '0x'))
+      .revertedWith('RemotePair: K');
   });
 
-  it("mint gas", async function () {
+  it('mint gas', async function() {
     const token0 = await pair.token0();
     const token1 = await pair.token1();
     await IERC20__factory.connect(token0, owner).transfer(pair.address, 100000000);
     await IERC20__factory.connect(token1, owner).transfer(pair.address, 100000000);
     const tx = await pair.mint(owner.address);
-    const receipt = await tx.wait()
+    const receipt = await tx.wait();
     expect(receipt.gasUsed).below(BigNumber.from(140000));
   });
 
-  it("burn gas", async function () {
+  it('burn gas', async function() {
     const token0 = await pair.token0();
     const token1 = await pair.token1();
     await IERC20__factory.connect(token0, owner).transfer(pair.address, 100000000);
     await IERC20__factory.connect(token1, owner).transfer(pair.address, 100000000);
     await pair.mint(owner.address);
-    await IERC20__factory.connect(pair.address, owner).transfer(pair.address, 100000000)
+    await IERC20__factory.connect(pair.address, owner).transfer(pair.address, 100000000);
     const tx = await pair.burn(owner.address);
-    const receipt = await tx.wait()
+    const receipt = await tx.wait();
     expect(receipt.gasUsed).below(BigNumber.from(130000));
   });
 
-  it("twap price complex test", async function () {
-    await mim.approve(router.address, parseUnits('100'));
-    await ust.approve(router.address, parseUnits('100', 6));
-
-    expect(await pair.observationLength()).eq(1);
-    const window = 10;
-    for (let i = 0; i < window; i++) {
-      await TimeUtils.advanceBlocksOnTs(60 * 60)
-      await pair.sync();
-    }
-
-    expect(await pair.observationLength()).eq(window + 1);
-    await checkTwap(pair, mim.address, BigNumber.from(35));
-
-    await router.swapExactTokensForTokens(parseUnits('1'), 0, [{
-      from: mim.address,
-      to: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-
-    await checkTwap(pair, mim.address, BigNumber.from(581_393));
-    await TimeUtils.advanceBlocksOnTs(60 * 60 * window)
-    await pair.sync();
-    await checkTwap(pair, mim.address, BigNumber.from(523_258));
-
-    await router.swapExactTokensForTokens(parseUnits('1', 6), 0, [{
-      to: mim.address,
-      from: ust.address,
-      stable: true,
-    }], owner.address, 9999999999);
-
-    await checkTwap(pair, mim.address, BigNumber.from(195_121));
-    await TimeUtils.advanceBlocksOnTs(60 * 60 * window)
-    await pair.sync();
-    await checkTwap(pair, mim.address, BigNumber.from(181_396));
-
-  });
-
 });
-
-async function checkTwap(pair: RemotePair, tokenIn: string, diff: BigNumber) {
-  const amount = parseUnits('1');
-  const twapPrice = await pair.quote(tokenIn, amount, 10)
-  const curPrice = await pair.getAmountOut(amount, tokenIn);
-  console.log('twapPrice', twapPrice.toString());
-  console.log('curPrice', curPrice.toString());
-  if (twapPrice.gt(curPrice)) {
-    TestHelper.closer(twapPrice.sub(curPrice), diff, diff.div(100));
-  } else {
-    TestHelper.closer(curPrice.sub(twapPrice), diff, diff.div(100));
-  }
-}
 
 async function swapInLoop(
   owner: SignerWithAddress,
@@ -509,7 +382,7 @@ async function swapInLoop(
     tokenB.address,
     amount,
     amount,
-    true
+    true,
   );
 
   const balB = await tokenB.balanceOf(owner.address);
@@ -519,7 +392,7 @@ async function swapInLoop(
     await router.swapExactTokensForTokens(
       amount.div(100).div(loops),
       0,
-      [{from: tokenA.address, to: tokenB.address, stable: true}],
+      [{ from: tokenA.address, to: tokenB.address, stable: true }],
       owner.address,
       BigNumber.from('999999999999999999'),
     );
@@ -549,7 +422,7 @@ async function prices(
     tokenB.address,
     amount,
     amount,
-    stable
+    stable,
   );
 
   const price = parseUnits('1');
@@ -565,7 +438,7 @@ async function prices(
 }
 
 
-function getStablePrice(reserveIn: number, reserveOut: number,): number {
+function getStablePrice(reserveIn: number, reserveOut: number): number {
   return getAmountOut(1 / 18, reserveIn, reserveOut) * 18;
 }
 

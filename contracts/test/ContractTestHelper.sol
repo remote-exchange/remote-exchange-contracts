@@ -10,13 +10,6 @@ contract ContractTestHelper is IERC721Receiver {
   using SafeERC20 for IERC20;
   using Math for uint;
 
-  function pairCurrentTwice(address pair, address tokenIn, uint amountIn) external returns (uint, uint){
-    uint c0 = RemotePair(pair).current(tokenIn, amountIn);
-    RemotePair(pair).sync();
-    uint c1 = RemotePair(pair).current(tokenIn, amountIn);
-    return (c0, c1);
-  }
-
   function hook(address, uint amount0, uint amount1, bytes calldata data) external {
     address pair = abi.decode(data, (address));
     (address token0, address token1) = RemotePair(pair).tokens();

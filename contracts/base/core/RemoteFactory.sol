@@ -9,7 +9,7 @@ contract RemoteFactory is IFactory {
 
   bool public override isPaused;
   address public pauser;
-  address public pendingPauser;
+  address internal pendingPauser;
 
   mapping(address => mapping(address => mapping(bool => address))) public override getPair;
   address[] public allPairs;
@@ -30,7 +30,6 @@ contract RemoteFactory is IFactory {
 
   constructor() {
     pauser = msg.sender;
-    isPaused = false;
   }
 
   function allPairsLength() external view returns (uint) {
