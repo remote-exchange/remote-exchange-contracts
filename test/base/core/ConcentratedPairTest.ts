@@ -65,7 +65,7 @@ describe('ConcentratedPairTest', function() {
     await usdc1.mint(pair.address, parseUnits('2', 6));
     await wbtc0.mint(pair.address, parseUnits('1', 8));
 
-    await pair.setPrice(parseUnits('2'));
+    await pair.setPrice(parseUnits('0.5'));
 
     expect((await getAmountOut(pair, 0.1, false)).out).eq(0.05);
     expect((await getAmountOut(pair, 0.1, false)).remaining).eq(0);
@@ -84,7 +84,7 @@ describe('ConcentratedPairTest', function() {
     await usdc1.mint(pair.address, parseUnits('2', 6));
     await wbtc0.mint(pair.address, parseUnits('1', 8));
 
-    await pair.setPrice(parseUnits('2'));
+    await pair.setPrice(parseUnits('0.5'));
 
     expect((await getAmountIn(pair, 0.1, true)).amountIn).eq(0.2);
     expect((await getAmountIn(pair, 0.1, true)).remainingOut).eq(0);

@@ -234,42 +234,106 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   }
 
   function cPairRatio() public view returns (uint) {
-    return swapFee / 10;
+        return swapFee / 10;
+//    return 0;
   }
 
   function _rebalanceConcentratedPair(uint balance0, uint balance1) internal {
     uint _cPairRatio = cPairRatio();
+    if (_cPairRatio != 0) {
 
-    uint desired0 = balance0 / _cPairRatio;
-    uint desired1 = balance1 / _cPairRatio;
-    address _concentratedPair = concentratedPair;
-    uint cBalance0 = IERC20(token0).balanceOf(_concentratedPair);
-    uint cBalance1 = IERC20(token1).balanceOf(_concentratedPair);
+      uint desired0 = balance0 / _cPairRatio;
+      uint desired1 = balance1 / _cPairRatio;
+      address _concentratedPair = concentratedPair;
+      uint cBalance0 = IERC20(token0).balanceOf(_concentratedPair);
+      uint cBalance1 = IERC20(token1).balanceOf(_concentratedPair);
 
-    if (cBalance0 < desired0 / 100) {
-      console.log('>>> REBALANCE 0', cBalance0, desired0 / 100);
-      IERC20(token1).safeTransferFrom(_concentratedPair, address(this), cBalance1 / 2);
-      _internalSwap(
-        cBalance1 / 2,
-        false,
-        _concentratedPair,
-        balance0,
-        balance1
-      );
-      ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
-    } else if (cBalance1 < desired1 / 100) {
-      console.log('>>> REBALANCE 1', cBalance1, desired1 / 100);
-      IERC20(token0).safeTransferFrom(_concentratedPair, address(this), cBalance0 / 2);
-      _internalSwap(
-        cBalance0 / 2,
-        true,
-        _concentratedPair,
-        balance0,
-        balance1
-      );
-      ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
+      console.log('desired0', desired0);
+      console.log('desired1', desired1);
+      console.log('cBalance0', cBalance0);
+      console.log('cBalance1', cBalance1);
+
+      if (cBalance0 < desired0 / 100) {
+        uint toSwap1 = cBalance1 > desired1 ? cBalance1 - desired1 : cBalance1 / 2;
+        console.log('>>> REBALANCE0');
+        console.log('toSwap1', toSwap1);
+        IERC20(token1).safeTransferFrom(_concentratedPair, address(this), toSwap1);
+        (uint swapped, uint b0, uint b1) = _internalSwap(
+          toSwap1,
+          false,
+          _concentratedPair,
+          balance0,
+          balance1
+        );
+
+        console.log('swapped', swapped);
+        cBalance0 += swapped;
+        if (desired0 > cBalance0) {
+          uint need0 = desired0 - cBalance0;
+          uint ratio = need0 * 1e18 / b0;
+          uint need1 = b1 * ratio / 1e18;
+          console.log('need0', need0);
+          console.log('need1', need1);
+
+          IERC20(token0).safeTransfer(_concentratedPair, need0);
+          IERC20(token1).safeTransfer(_concentratedPair, need1);
+          b0 -= need0;
+          b1 -= need1;
+        }
+        reserve0 = b0;
+        reserve1 = b1;
+
+        ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
+      } else if (cBalance1 < desired1 / 100) {
+
+        uint toSwap0 = cBalance0 > desired0 ? cBalance0 - desired0 : cBalance0 / 2;
+        console.log('>>> REBALANCE1');
+        console.log('toSwap0', toSwap0);
+        IERC20(token0).safeTransferFrom(_concentratedPair, address(this), toSwap0);
+        (uint swapped, uint b0, uint b1) = _internalSwap(
+          toSwap0,
+          true,
+          _concentratedPair,
+          balance0,
+          balance1
+        );
+
+        console.log('swapped', swapped);
+        cBalance1 += swapped;
+        if (desired1 > cBalance1) {
+          uint need1 = desired1 - cBalance1;
+          uint ratio = need1 * 1e18 / b1;
+          uint need0 = b0 * ratio / 1e18;
+          console.log('need0', need0);
+          console.log('need1', need1);
+
+          IERC20(token0).safeTransfer(_concentratedPair, need0);
+          IERC20(token1).safeTransfer(_concentratedPair, need1);
+          b0 -= need0;
+          b1 -= need1;
+        }
+        reserve0 = b0;
+        reserve1 = b1;
+
+        ConcentratedPair(_concentratedPair).setPrice(lastPrice0to1);
+      }
+      // both lower or higher not suppose to be. if yes - just handle as usual, should be balanced in next calls
+
+      console.log('cBalance0 after', IERC20(token0).balanceOf(_concentratedPair));
+      console.log('cBalance1 after', IERC20(token1).balanceOf(_concentratedPair));
+      console.log('VIRTUAL price after', _amountsToPrice0to1(IERC20(token0).balanceOf(address(this)), 0, 0, IERC20(token1).balanceOf(address(this))));
     }
-    // both lower or higher not suppose to be. if yes - just handle as usual, should be balanced in next calls
+  }
+
+  function _reservesRatio(uint balance0, uint balance1, uint price) internal view returns (uint) {
+    console.log('price', price);
+    console.log('BALANCE0', balance0);
+    console.log('BALANCE1', balance1);
+    uint b0 = balance0 * price / decimals0;
+    uint b1 = balance1 * 1e18 / decimals1;
+    console.log('b0', b0);
+    console.log('b1', b1);
+    return b0 * 1e18 / b1;
   }
 
   function _internalSwap(
@@ -278,22 +342,25 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     address to,
     uint _reserve0,
     uint _reserve1
-  ) internal {
+  ) internal returns (
+    uint amountOut,
+    uint balance0,
+    uint balance1
+  ) {
     uint reserveOut = isTokenIn0 ? _reserve1 : _reserve0;
     address tokenIn = isTokenIn0 ? token0 : token1;
     address tokenOut = isTokenIn0 ? token1 : token0;
-    uint amountOut = _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
+    amountOut = _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
     require(amountOut > 0 && amountOut < reserveOut, "!input");
 
     IERC20(tokenOut).safeTransfer(to, amountOut);
 
-    uint _balance0 = IERC20(token0).balanceOf(address(this));
-    uint _balance1 = IERC20(token1).balanceOf(address(this));
+    balance0 = IERC20(token0).balanceOf(address(this));
+    balance1 = IERC20(token1).balanceOf(address(this));
     // The curve, either x3y+y3x for stable pools, or x*y for volatile pools
-    require(_k(_balance0, _balance1) >= _k(_reserve0, _reserve1), "K");
-
-    reserve0 = _balance0;
-    reserve1 = _balance1;
+    console.log('INTERNAL k old', _k(_reserve0, _reserve1));
+    console.log('INTERNAL k new', _k(balance0, balance1));
+    require(_k(balance0, balance1) + 1 >= _k(_reserve0, _reserve1), "K");
   }
 
   function _amountsToPrice0to1(
@@ -308,8 +375,10 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     console.log('amount0In', amount0In);
     console.log('amount1In', amount1In);
     if (amount0Out != 0 && amount1In != 0) {
+      console.log('price1', (amount0Out * 1e18 / decimals0) * 1e18 / (amount1In * 1e18 / decimals1));
       return (amount0Out * 1e18 / decimals0) * 1e18 / (amount1In * 1e18 / decimals1);
     } else if (amount1Out != 0 && amount0In != 0) {
+      console.log('price0', (amount0In * 1e18 / decimals0) * 1e18 / (amount1Out * 1e18 / decimals1));
       return (amount0In * 1e18 / decimals0) * 1e18 / (amount1Out * 1e18 / decimals1);
     }
     return 0;
@@ -343,7 +412,10 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint _volume0 = amount0In + amount0Out;
     uint _volume1 = amount1In + amount1Out;
 
-    if (_price0to1 != 0) lastPrice0to1 = _price0to1;
+    if (_price0to1 != 0) {
+      lastPrice0to1 = _price0to1;
+//      ConcentratedPair(concentratedPair).setPrice(_price0to1);
+    }
 
     // overflow is desired
   unchecked {
@@ -407,10 +479,13 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     _mint(to, liquidity);
 
     uint _cRatio = cPairRatio();
-    IERC20(_token0).safeTransfer(cPair, _amount0 / _cRatio);
-    IERC20(_token1).safeTransfer(cPair, _amount1 / _cRatio);
-
-    _update(_balance0 - (_amount0 / _cRatio), _balance1 - (_amount1 / _cRatio), _reserve0, _reserve1, 0, 0, 0, 0);
+    if (_cRatio != 0) {
+      IERC20(_token0).safeTransfer(cPair, _amount0 / _cRatio);
+      IERC20(_token1).safeTransfer(cPair, _amount1 / _cRatio);
+      _balance0 -= (_amount0 / _cRatio);
+      _balance1 -= (_amount1 / _cRatio);
+    }
+    _update(_balance0, _balance1, _reserve0, _reserve1, 0, 0, 0, 0);
     emit Mint(msg.sender, _amount0, _amount1);
   }
 
@@ -555,9 +630,15 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     // check concentrated pair invariant, should be the same or higher
     require(ConcentratedPair(cPair).k() >= context.cK, 'RemotePair: cK');
 
+    console.log('bal0 after K', IERC20(context.token0).balanceOf(address(this)));
+    console.log('bal1 after K', IERC20(context.token1).balanceOf(address(this)));
+
     _update(context.balance0, context.balance1, context.reserve0, context.reserve1, amount0Out, amount1Out, amount0In, amount1In);
     _rebalanceConcentratedPair(context.balance0, context.balance1);
     emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+
+    console.log('bal0 END', IERC20(context.token0).balanceOf(address(this)));
+    console.log('bal1 END', IERC20(context.token1).balanceOf(address(this)));
   }
 
   /// @dev Force balances to match reserves
@@ -606,7 +687,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
   function getAmountOut(uint amountIn, address tokenIn) external view override returns (uint) {
     // remove fee from amount received
-    amountIn -= amountIn / swapFee;
+    amountIn -= Math.ceilDiv(amountIn, swapFee);
     (
     uint amountOut,
     uint amountInRemaining

@@ -59,10 +59,10 @@ contract ConcentratedPair {
 
     if (tokenIn == _token0) {
       uint amountInAdj = amountIn * 1e18 / _decimals0;
-      amountOut = amountInAdj * _price / 1e18 * _decimals1 / 1e18;
+      amountOut = amountInAdj * 1e18 / _price * _decimals1 / 1e18;
     } else {
       uint amountInAdj = amountIn * 1e18 / _decimals1;
-      amountOut = amountInAdj * 1e18 / _price * _decimals0 / 1e18;
+      amountOut = amountInAdj * _price / 1e18 * _decimals0 / 1e18;
     }
 
     uint reserveOut = tokenIn == _token0 ? IERC20(_token1).balanceOf(address(this)) : IERC20(_token0).balanceOf(address(this));
@@ -71,9 +71,9 @@ contract ConcentratedPair {
       uint diff = amountOut - reserveOut;
       amountOut = reserveOut;
       if (tokenIn == _token0) {
-        amountInRemaining = diff * 1e18 / _decimals1 * 1e18 / _price * _decimals0 / 1e18;
+        amountInRemaining = diff * 1e18 / _decimals1 * _price / 1e18 * _decimals0 / 1e18;
       } else {
-        amountInRemaining = diff * 1e18 / _decimals0 * _price / 1e18 * _decimals1 / 1e18;
+        amountInRemaining = diff * 1e18 / _decimals0 * 1e18 / _price * _decimals1 / 1e18;
       }
     }
   }
@@ -89,11 +89,11 @@ contract ConcentratedPair {
 
     uint reserve1 = IERC20(token1).balanceOf(address(this));
     amount1OutRemaining = amount1Out > reserve1 ? amount1Out - reserve1 : 0;
-    amountIn0 = Math.ceilDiv((amount1Out - amount1OutRemaining) * 1e18 / decimals1 * 1e18, _price) * decimals0 / 1e18;
+    amountIn0 = Math.ceilDiv((amount1Out - amount1OutRemaining) * 1e18 / decimals1 * _price, 1e18) * decimals0 / 1e18;
 
     uint reserve0 = IERC20(token0).balanceOf(address(this));
     amount0OutRemaining = amount0Out > reserve0 ? amount0Out - reserve0 : 0;
-    amountIn1 = Math.ceilDiv((amount0Out - amount0OutRemaining) * 1e18 / decimals0 * _price, 1e18) * decimals1 / 1e18;
+    amountIn1 = Math.ceilDiv((amount0Out - amount0OutRemaining) * 1e18 / decimals0 * 1e18, _price) * decimals1 / 1e18;
 
     cK = _k(reserve0, reserve1, _price);
   }

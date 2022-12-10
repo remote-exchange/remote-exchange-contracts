@@ -20,8 +20,6 @@ contract SwapLibrary {
     pairCodeHash = IFactory(IRouter(_router).factory()).pairCodeHash();
   }
 
-
-
   function getNormalizedReserves(address tokenA, address tokenB, bool stable) external view returns (uint reserveA, uint reserveB){
     address pair = pairFor(tokenA, tokenB, stable);
     if (pair == address(0)) {

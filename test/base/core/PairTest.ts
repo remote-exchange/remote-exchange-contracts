@@ -5,6 +5,7 @@ import {
   RemoteRouter01,
   IERC20__factory,
   Token,
+  ConcentratedPair, ConcentratedPair__factory,
 } from '../../../typechain';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
@@ -15,6 +16,7 @@ import { TestHelper } from '../../TestHelper';
 import { BigNumber, utils } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { Misc } from '../../../scripts/Misc';
+import { appendFileSync, writeFileSync } from 'fs';
 
 const { expect } = chai;
 
@@ -352,12 +354,56 @@ describe('pair tests', function() {
     expect(receipt.gasUsed).below(BigNumber.from(160_000));
   });
 
+  it('lastPrice0to1 test', async function() {
+    const token0 = await pair2.token0();
+    const token1 = await pair2.token1();
+    const price = await pair2.lastPrice0to1();
+    const amountIn = parseUnits('0.00001');
+    const amountOut = await pair2.getAmountOut(amountIn, token0);
+    const amountPrice = +formatUnits(amountOut) / +formatUnits(amountIn);
+    console.log('PRICE', formatUnits(price));
+    console.log('amountOut', formatUnits(amountOut));
+    console.log('amount price', amountPrice);
+
+    expect(amountPrice).approximately(+formatUnits(price), 0.001);
+
+    const swapAmount = parseUnits('0.1');
+    await IERC20__factory.connect(token1, owner).transfer(pair2.address, swapAmount);
+    await pair2.swap(await pair2.getAmountOut(swapAmount, token0), 0, owner.address, '0x');
+
+    const price2 = await pair2.lastPrice0to1();
+    const amountIn2 = parseUnits('0.00001');
+    const amountOut2 = await pair2.getAmountOut(amountIn2, token0);
+    const amountPrice2 = +formatUnits(amountOut2) / +formatUnits(amountIn2);
+
+
+    console.log('PRICE2', formatUnits(price2));
+    console.log('amountOut2', formatUnits(amountOut2));
+    console.log('amount price2', amountPrice2);
+
+    expect(amountPrice2).approximately(+formatUnits(price2), 0.001);
+  });
+
   it('rebalance cPair price impact test', async function() {
     // todo
   });
 
-  it('price curve chart valotile', async function() {
-    // todo
+  it('price curve chart volatile', async function() {
+    await writeFileSync('tmp/swap.txt', '', 'utf8');
+    const p = await TestHelper.addLiquidity(
+      factory,
+      router,
+      owner,
+      mim.address,
+      wmatic.address,
+      BigNumber.from(100_000_000),
+      BigNumber.from(100_000_000),
+      false,
+    );
+
+    for (let i = 0; i < 100; i++) {
+      await swap(p);
+    }
   });
 
   it('price curve chart stable', async function() {
@@ -385,6 +431,10 @@ describe('pair tests', function() {
   });
 
   it('average volume test', async function() {
+    // todo
+  });
+
+  it('cPair reserves rebalance should move main pair reserves safly on repeated swaps', async function() {
     // todo
   });
 });
@@ -521,4 +571,82 @@ function _closeTo(a: number, b: number, target: number): boolean {
     }
   }
   return false;
+}
+
+async function swap(pair: RemotePair, isTokenIn0 = true, amountIn = BigNumber.from(100_000)) {
+  console.log(' ----------------------- START SWAP ------------------------------');
+  const owner = await ethers.getSigner(await pair.signer.getAddress());
+  const token0 = await pair.token0();
+  const token1 = await pair.token1();
+  const cPair = await pair.concentratedPair();
+  const balance0 = await IERC20__factory.connect(token0, owner).balanceOf(pair.address);
+  const balance1 = await IERC20__factory.connect(token1, owner).balanceOf(pair.address);
+  const cBalance0 = await IERC20__factory.connect(token0, owner).balanceOf(cPair);
+  const cBalance1 = await IERC20__factory.connect(token1, owner).balanceOf(cPair);
+  const price = await pair.lastPrice0to1();
+  const cPrice = await ConcentratedPair__factory.connect(cPair, owner).price();
+
+
+  console.log('balance0', balance0.toString());
+  console.log('balance1', balance1.toString());
+  console.log('cBalance0', cBalance0.toString());
+  console.log('cBalance1', cBalance1.toString());
+  console.log('cPrice', formatUnits(cPrice));
+  console.log('PRICE', formatUnits(price));
+
+  let tokenIn;
+  if (isTokenIn0) {
+    tokenIn = token0;
+  } else {
+    tokenIn = token1;
+  }
+  await IERC20__factory.connect(tokenIn, owner).transfer(pair.address, amountIn);
+  const amountOut = await pair.getAmountOut(amountIn, tokenIn);
+  console.log('amountIn', amountIn.toString());
+  console.log('amountOut', amountOut.toString());
+
+  console.log('$$$$$$$')
+  await pair.swap(isTokenIn0 ? 0 : amountOut, isTokenIn0 ? amountOut : 0, owner.address, '0x');
+  console.log('$$$$$$$')
+
+  const balance0After = await IERC20__factory.connect(token0, owner).balanceOf(pair.address);
+  const balance1After = await IERC20__factory.connect(token1, owner).balanceOf(pair.address);
+  const cBalance0After = await IERC20__factory.connect(token0, owner).balanceOf(cPair);
+  const cBalance1After = await IERC20__factory.connect(token1, owner).balanceOf(cPair);
+  const priceAfter = await pair.lastPrice0to1();
+  const cPriceAfter = await ConcentratedPair__factory.connect(cPair, owner).price();
+
+
+  console.log('balance0 after', balance0After.toString());
+  console.log('balance1 after', balance1After.toString());
+  console.log('cBalance0 after', cBalance0After.toString());
+  console.log('cBalance1 after', cBalance1After.toString());
+  console.log('cPrice after', formatUnits(priceAfter));
+  console.log('PRICE after', formatUnits(cPriceAfter));
+  console.log(' -----------------------------------------------------');
+
+  let data = '';
+  data += balance0.toString() + ';';
+  data += balance1.toString() + ';';
+  data += cBalance0.toString() + ';';
+  data += cBalance1.toString() + ';';
+  data += formatUnits(cPrice) + ';';
+  data += formatUnits(price) + ';';
+  data += amountIn.toString() + ';';
+  data += amountOut.toString() + ';';
+  data += balance0After.toString() + ';';
+  data += balance1After.toString() + ';';
+  data += cBalance0After.toString() + ';';
+  data += cBalance1After.toString() + ';';
+  data += formatUnits(priceAfter) + ';';
+  data += formatUnits(cPriceAfter);
+  data += '\n';
+
+  await appendFileSync('tmp/swap.txt', data, 'utf8');
+
+  if (isTokenIn0) {
+    expect(priceAfter.gte(price)).eq(true);
+  } else {
+    expect(priceAfter.lte(price)).eq(true);
+  }
 }
