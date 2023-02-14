@@ -107,6 +107,6 @@ contract ConcentratedPair {
     console.log('reserve1', reserve1);
     console.log('reserve0 priced', reserve0 * _price / decimals0);
     console.log('reserve1 priced', reserve1 * 1e18 / _price * 1e18 / decimals1);
-    return reserve0 * _price / decimals0 + reserve1 * 1e18 / decimals1;
+    return reserve0 * 1e18 / decimals0 + reserve1 * _price / decimals1;
   }
 }
