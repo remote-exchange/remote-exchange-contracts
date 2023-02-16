@@ -54,6 +54,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   address public immutable fees;
   address public immutable factory;
   address public immutable concentratedPair;
+  bool public concentratedPairEnabled;
 
   Observation[] public observations;
 
@@ -137,6 +138,8 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     concentratedPair = _concentratedPair;
     IERC20(_token0).safeIncreaseAllowance(concentratedPair, type(uint).max);
     IERC20(_token1).safeIncreaseAllowance(concentratedPair, type(uint).max);
+
+    concentratedPairEnabled = true;
   }
 
   function setSwapFee(uint value) external {
@@ -414,7 +417,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint _volume0 = amount0In + amount0Out;
     uint _volume1 = amount1In + amount1Out;
 
-    if (_price0to1 != 0) {
+    if (_price0to1 != 0 && concentratedPairEnabled) {
       // potential vuln: this price can be manipulated by increasing amountOut
       // todo fix
       lastPrice0to1 = _price0to1;
@@ -479,7 +482,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     require(liquidity > 0, 'RemotePair: INSUFFICIENT_LIQUIDITY_MINTED');
     _mint(to, liquidity);
 
-    if (_totalSupply > 0) {
+    if (_totalSupply > 0 && concentratedPairEnabled) {
       uint _cRatio = cPairRatio();
       if (_cRatio != 0) {
         IERC20(_token0).safeTransfer(cPair, _amount0 / _cRatio);
@@ -638,7 +641,9 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     console.log('bal1 after K', IERC20(context.token1).balanceOf(address(this)));
 
     _update(context.balance0, context.balance1, context.reserve0, context.reserve1, amount0Out, amount1Out, amount0In, amount1In);
-    _rebalanceConcentratedPair(context.balance0, context.balance1);
+    if (concentratedPairEnabled) {
+      _rebalanceConcentratedPair(context.balance0, context.balance1);
+    }
     emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
 
     console.log('bal0 END', IERC20(context.token0).balanceOf(address(this)));
@@ -698,7 +703,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint amountOut;
     uint amountInRemaining;
     ConcentratedPair cPair = ConcentratedPair(concentratedPair);
-    if (cPair.k() > 0) {
+    if (cPair.k() > 0 && concentratedPairEnabled) {
       (
       amountOut,
       amountInRemaining
@@ -836,5 +841,24 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     balanceOf[dst] += amount;
 
     emit Transfer(src, dst, amount);
+  }
+
+  function toggleConcentratedPair() external {
+    require(msg.sender == factory, "!factory");
+    if (concentratedPairEnabled) {
+      IERC20(token0).safeTransferFrom(concentratedPair, address(this), IERC20(token0).balanceOf(concentratedPair));
+      IERC20(token1).safeTransferFrom(concentratedPair, address(this), IERC20(token1).balanceOf(concentratedPair));
+      _update(
+        IERC20(token0).balanceOf(address(this)),
+        IERC20(token1).balanceOf(address(this)),
+        reserve0,
+        reserve1, 0, 0, 0, 0
+      );
+      lastPrice0to1 = 0;
+      ConcentratedPair(concentratedPair).setPrice(0);
+      concentratedPairEnabled = false;
+    } else {
+      concentratedPairEnabled = true;
+    }
   }
 }

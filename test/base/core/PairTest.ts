@@ -444,6 +444,46 @@ describe('pair tests', function() {
     expect(+formatUnits(swapAmount2) / +formatUnits(amountOut2, 6)).approximately(+formatUnits(await p2.lastPrice0to1()), 0.001);
   });
 
+  it('disable/enable cPair', async function() {
+    // make first swap in pair
+    const swapAmount = utils.parseUnits('0.1', 6)
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(await pair.getAmountOut(swapAmount, await pair.token1()), 0, owner.address, '0x');
+
+    const cPair = await pair.concentratedPair();
+    const t0 = IERC20__factory.connect(await pair.token0(), owner);
+    const t1 = IERC20__factory.connect(await pair.token1(), owner);
+    expect(await t0.balanceOf(cPair)).gt(0);
+    expect(await t1.balanceOf(cPair)).gt(0);
+
+    await expect(pair.toggleConcentratedPair()).to.revertedWith('!factory')
+    await factory.toggleConcentratedPair(pair.address);
+
+    expect(await pair.concentratedPairEnabled()).eq(false)
+    expect(await t0.balanceOf(cPair)).eq(0);
+    expect(await t1.balanceOf(cPair)).eq(0);
+    expect(await pair.lastPrice0to1()).eq(0)
+    expect(await ConcentratedPair__factory.connect(cPair, owner).price()).eq(0)
+
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(await pair.getAmountOut(swapAmount, await pair.token1()), 0, owner.address, '0x');
+
+    expect(await pair.concentratedPairEnabled()).eq(false)
+    expect(await t0.balanceOf(cPair)).eq(0);
+    expect(await t1.balanceOf(cPair)).eq(0);
+    expect(await pair.lastPrice0to1()).eq(0)
+    expect(await ConcentratedPair__factory.connect(cPair, owner).price()).eq(0)
+
+    await factory.toggleConcentratedPair(pair.address);
+    expect(await pair.concentratedPairEnabled()).eq(true)
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(await pair.getAmountOut(swapAmount, await pair.token1()), 0, owner.address, '0x');
+    expect(await t0.balanceOf(cPair)).gt(0);
+    expect(await t1.balanceOf(cPair)).gt(0);
+    expect(await pair.lastPrice0to1()).gt(0)
+    expect(await ConcentratedPair__factory.connect(cPair, owner).price()).eq(await pair.lastPrice0to1())
+  });
+
   it('rebalance cPair price impact test', async function() {
     // todo
   });

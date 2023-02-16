@@ -56,6 +56,11 @@ contract RemoteFactory is IFactory {
     RemotePair(pair).setSwapFee(value);
   }
 
+  function toggleConcentratedPair(address pair) external {
+    require(msg.sender == pauser, "RemoteFactory: Not pauser");
+    RemotePair(pair).toggleConcentratedPair();
+  }
+
   function pairCodeHash() external pure override returns (bytes32) {
     return keccak256(type(RemotePair).creationCode);
   }

@@ -42,7 +42,7 @@ contract ConcentratedPair {
   }
 
   function setPrice(uint _price) external onlyPair {
-    require(_price != 0, "zero price");
+//    require(_price != 0, "zero price");
     price = _price;
     emit PriceChanged(_price);
   }
