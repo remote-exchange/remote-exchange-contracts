@@ -321,7 +321,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
       console.log('cBalance0 after', IERC20(token0).balanceOf(_concentratedPair));
       console.log('cBalance1 after', IERC20(token1).balanceOf(_concentratedPair));
-      console.log('VIRTUAL price after', _amountsToPrice0to1(IERC20(token0).balanceOf(address(this)), 0, 0, IERC20(token1).balanceOf(address(this))));
+//      console.log('VIRTUAL price after', _amountsToPrice0to1(IERC20(token0).balanceOf(address(this)), 0, 0, IERC20(token1).balanceOf(address(this))));
     }
   }
 
@@ -350,10 +350,12 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint reserveOut = isTokenIn0 ? _reserve1 : _reserve0;
     address tokenIn = isTokenIn0 ? token0 : token1;
     address tokenOut = isTokenIn0 ? token1 : token0;
-    amountOut = _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
-    require(amountOut > 0 && amountOut < reserveOut, "!input");
+    if (amountIn > 0) {
+      amountOut = _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
+      require(amountOut > 0 && amountOut < reserveOut, "!input");
 
-    IERC20(tokenOut).safeTransfer(to, amountOut);
+      IERC20(tokenOut).safeTransfer(to, amountOut);
+    }
 
     balance0 = IERC20(token0).balanceOf(address(this));
     balance1 = IERC20(token1).balanceOf(address(this));
@@ -413,7 +415,10 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint _volume1 = amount1In + amount1Out;
 
     if (_price0to1 != 0) {
+      // potential vuln: this price can be manipulated by increasing amountOut
+      // todo fix
       lastPrice0to1 = _price0to1;
+      console.log('_update new lastPrice0to1', lastPrice0to1);
 //      ConcentratedPair(concentratedPair).setPrice(_price0to1);
     }
 
@@ -468,26 +473,24 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       liquidity = Math.sqrt(_amount0 * _amount1) - MINIMUM_LIQUIDITY;
       // permanently lock the first MINIMUM_LIQUIDITY tokens
       _mint(address(0), MINIMUM_LIQUIDITY);
-      // set first price for concentrated pair
-      uint price = _amountsToPrice0to1(_amount0, 0, 0, _amount1);
-      lastPrice0to1 = price;
-      ConcentratedPair(cPair).setPrice(price);
     } else {
       liquidity = Math.min(_amount0 * _totalSupply / (_reserve0 + cBalance0), _amount1 * _totalSupply / (_reserve1 + cBalance1));
     }
     require(liquidity > 0, 'RemotePair: INSUFFICIENT_LIQUIDITY_MINTED');
     _mint(to, liquidity);
 
-    uint _cRatio = cPairRatio();
-    if (_cRatio != 0) {
-      IERC20(_token0).safeTransfer(cPair, _amount0 / _cRatio);
-      IERC20(_token1).safeTransfer(cPair, _amount1 / _cRatio);
-      _balance0 -= (_amount0 / _cRatio);
-      _balance1 -= (_amount1 / _cRatio);
+    if (_totalSupply > 0) {
+      uint _cRatio = cPairRatio();
+      if (_cRatio != 0) {
+        IERC20(_token0).safeTransfer(cPair, _amount0 / _cRatio);
+        IERC20(_token1).safeTransfer(cPair, _amount1 / _cRatio);
+        _balance0 -= (_amount0 / _cRatio);
+        _balance1 -= (_amount1 / _cRatio);
+      }
     }
     _update(_balance0, _balance1, _reserve0, _reserve1, 0, 0, 0, 0);
     emit Mint(msg.sender, _amount0, _amount1);
-  }
+  } 
 
   /// @dev This low-level function should be called from a contract which performs important safety checks
   ///      standard uniswap v2 implementation
@@ -591,8 +594,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
     console.log('context.reserve0', context.reserve0);
     console.log('context.reserve1', context.reserve1);
-    console.log('context.balance0', context.balance0);
-    console.log('context.balance1', context.balance1);
     console.log('context.cAmount0In', context.cAmount0In);
     console.log('context.cAmount1In', context.cAmount1In);
     console.log('context.cK', context.cK);
@@ -602,8 +603,11 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     context.balance0 = IERC20(context.token0).balanceOf(address(this));
     context.balance1 = IERC20(context.token1).balanceOf(address(this));
 
-    uint amount0In = context.balance0 > context.reserve0 - context.amount0OutRemaining ? context.balance0 - (context.reserve0 - context.amount0OutRemaining) : 0;
-    uint amount1In = context.balance1 > context.reserve1 - context.amount1OutRemaining ? context.balance1 - (context.reserve1 - context.amount1OutRemaining) : 0;
+    console.log('context.balance0', context.balance0);
+    console.log('context.balance1', context.balance1);
+
+    uint amount0In = context.balance0 >= context.reserve0 - context.amount0OutRemaining ? context.balance0 - (context.reserve0 - context.amount0OutRemaining) : 0;
+    uint amount1In = context.balance1 >= context.reserve1 - context.amount1OutRemaining ? context.balance1 - (context.reserve1 - context.amount1OutRemaining) : 0;
 
     console.log('amount0In pure', amount0In);
     console.log('amount1In pure', amount1In);
@@ -650,7 +654,9 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
   // force reserves to match balances
   function sync() external lock {
-    _rebalanceConcentratedPair(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)));
+    if (lastPrice0to1 != 0) {
+      _rebalanceConcentratedPair(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)));
+    }
     _update(
       IERC20(token0).balanceOf(address(this)),
       IERC20(token1).balanceOf(address(this)),
@@ -688,10 +694,21 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   function getAmountOut(uint amountIn, address tokenIn) external view override returns (uint) {
     // remove fee from amount received
     amountIn -= Math.ceilDiv(amountIn, swapFee);
-    (
-    uint amountOut,
-    uint amountInRemaining
-    ) = ConcentratedPair(concentratedPair).getAmountOut(amountIn, tokenIn);
+
+    uint amountOut;
+    uint amountInRemaining;
+    ConcentratedPair cPair = ConcentratedPair(concentratedPair);
+    if (cPair.k() > 0) {
+      (
+      amountOut,
+      amountInRemaining
+      ) = ConcentratedPair(concentratedPair).getAmountOut(amountIn, tokenIn);
+    } else {
+      amountInRemaining = amountIn;
+    }
+
+    console.log('getAmountOut amountIn', amountIn);
+    console.log('getAmountOut amountInRemaining', amountInRemaining);
 
     if (amountInRemaining != 0) {
       (uint _reserve0, uint _reserve1) = (reserve0, reserve1);

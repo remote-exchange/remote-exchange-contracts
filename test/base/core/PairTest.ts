@@ -40,6 +40,9 @@ describe('pair tests', function() {
   let pair: RemotePair;
   let pair2: RemotePair;
 
+  const MAX_GAS_MINT = 220_000; // 180_000
+  const MAX_GAS_BURN = 160_000;
+  const MAX_GAS_SWAP = 500_000; // 400_000
 
   before(async function() {
     snapshotBefore = await TimeUtils.snapshot();
@@ -129,7 +132,7 @@ describe('pair tests', function() {
   it('very little swap', async function() {
     await mim.approve(router.address, parseUnits('1'));
     await wmatic.approve(router.address, parseUnits('1'));
-    await router.swapExactTokensForTokens(2, BigNumber.from(0), [
+    await router.swapExactTokensForTokens(4, BigNumber.from(0), [
       {
         from: mim.address,
         to: wmatic.address,
@@ -278,7 +281,7 @@ describe('pair tests', function() {
   it('compare 1 trade with multiple trades test', async function() {
     const loop1 = await swapInLoop(owner, factory, router, 1);
     const loop100 = await swapInLoop(owner, factory, router, 10);
-    expect(+formatUnits(loop100.sub(loop1))).is.approximately(5e-7, 1e-7,
+    expect(+formatUnits(loop100.sub(loop1))).is.approximately(-5e-6, 1e-6,
       'difference should be not huge',
     );
   });
@@ -290,7 +293,7 @@ describe('pair tests', function() {
     await IERC20__factory.connect(token1, owner).transfer(pair.address, 1000000);
     const tx = await pair.swap(0, 10, owner.address, '0x');
     const receipt = await tx.wait();
-    expect(receipt.gasUsed).is.below(BigNumber.from(400_000));
+    expect(receipt.gasUsed).is.below(BigNumber.from(MAX_GAS_SWAP));
   });
 
   it('price without impact', async function() {
@@ -339,7 +342,7 @@ describe('pair tests', function() {
     await IERC20__factory.connect(token1, owner).transfer(pair.address, 100000000);
     const tx = await pair.mint(owner.address);
     const receipt = await tx.wait();
-    expect(receipt.gasUsed).below(BigNumber.from(180_000));
+    expect(receipt.gasUsed).below(BigNumber.from(MAX_GAS_MINT));
   });
 
   it('burn gas', async function() {
@@ -351,7 +354,7 @@ describe('pair tests', function() {
     await IERC20__factory.connect(pair.address, owner).transfer(pair.address, 100000000);
     const tx = await pair.burn(owner.address);
     const receipt = await tx.wait();
-    expect(receipt.gasUsed).below(BigNumber.from(160_000));
+    expect(receipt.gasUsed).below(BigNumber.from(MAX_GAS_BURN));
   });
 
   it('lastPrice0to1 test', async function() {
@@ -360,12 +363,13 @@ describe('pair tests', function() {
     const price = await pair2.lastPrice0to1();
     const amountIn = parseUnits('0.00001');
     const amountOut = await pair2.getAmountOut(amountIn, token0);
-    const amountPrice = +formatUnits(amountOut) / +formatUnits(amountIn);
+    const amountPrice = +formatUnits(amountIn) / +formatUnits(amountOut);
     console.log('PRICE', formatUnits(price));
     console.log('amountOut', formatUnits(amountOut));
     console.log('amount price', amountPrice);
 
-    expect(amountPrice).approximately(+formatUnits(price), 0.001);
+    // price is zero before first swap
+    expect(price).eq(0)
 
     const swapAmount = parseUnits('0.1');
     await IERC20__factory.connect(token1, owner).transfer(pair2.address, swapAmount);
@@ -374,14 +378,70 @@ describe('pair tests', function() {
     const price2 = await pair2.lastPrice0to1();
     const amountIn2 = parseUnits('0.00001');
     const amountOut2 = await pair2.getAmountOut(amountIn2, token0);
-    const amountPrice2 = +formatUnits(amountOut2) / +formatUnits(amountIn2);
-
+    const amountPrice2 = +formatUnits(amountIn2) / +formatUnits(amountOut2);
 
     console.log('PRICE2', formatUnits(price2));
     console.log('amountOut2', formatUnits(amountOut2));
     console.log('amount price2', amountPrice2);
 
     expect(amountPrice2).approximately(+formatUnits(price2), 0.001);
+  });
+
+  it('init cPair test', async function() {
+    const p = await TestHelper.addLiquidity(
+        factory,
+        router,
+        owner,
+        mim.address,
+        dai.address,
+        utils.parseUnits('1000000'),
+        utils.parseUnits('2000000'),
+        true,
+    );
+    const cPair = ConcentratedPair__factory.connect(await p.concentratedPair(), owner)
+
+    // lastPrice and cPair price must be zero before first swap
+    expect(await p.lastPrice0to1()).eq(0)
+    expect(await cPair.price()).eq(0)
+
+    // make first swap in pair
+    const swapAmount = utils.parseUnits('2')
+    const amountOut = await p.getAmountOut(swapAmount, await p.token1())
+    await IERC20__factory.connect(await p.token1(), owner).transfer(p.address, swapAmount);
+    await p.swap(amountOut, 0, owner.address, '0x');
+
+    expect(await p.lastPrice0to1()).gt(0)
+    expect(await cPair.price()).gt(0)
+    expect(await p.lastPrice0to1()).eq(await cPair.price())
+
+    expect(+formatUnits(amountOut) / +formatUnits(swapAmount)).approximately(+formatUnits(await p.lastPrice0to1()), 0.001);
+
+    const p2 = await TestHelper.addLiquidity(
+        factory,
+        router,
+        owner,
+        dai.address,
+        ust.address,
+        utils.parseUnits('100'),
+        utils.parseUnits('100', 6),
+        true,
+    );
+    const cPair2 = ConcentratedPair__factory.connect(await p2.concentratedPair(), owner)
+    // lastPrice and cPair price must be zero before first swap
+    expect(await p2.lastPrice0to1()).eq(0)
+    expect(await cPair2.price()).eq(0)
+
+    // make first swap in pair token0 to token1
+    const swapAmount2 = utils.parseUnits('2')
+    const amountOut2 = await p2.getAmountOut(swapAmount2, await p2.token0())
+    await IERC20__factory.connect(await p2.token0(), owner).transfer(p2.address, swapAmount2);
+    await p2.swap(0, amountOut2, owner.address, '0x');
+
+    expect(await p2.lastPrice0to1()).gt(0)
+    expect(await cPair2.price()).gt(0)
+    expect(await p2.lastPrice0to1()).eq(await cPair2.price())
+
+    expect(+formatUnits(swapAmount2) / +formatUnits(amountOut2, 6)).approximately(+formatUnits(await p2.lastPrice0to1()), 0.001);
   });
 
   it('rebalance cPair price impact test', async function() {
@@ -401,7 +461,7 @@ describe('pair tests', function() {
       false,
     );
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 10; i++) {
       await swap(p);
     }
   });

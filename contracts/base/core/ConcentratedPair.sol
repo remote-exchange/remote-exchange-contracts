@@ -105,8 +105,8 @@ contract ConcentratedPair {
   function _k(uint reserve0, uint reserve1, uint _price) internal view returns (uint) {
     console.log('reserve0', reserve0);
     console.log('reserve1', reserve1);
-    console.log('reserve0 priced', reserve0 * _price / decimals0);
-    console.log('reserve1 priced', reserve1 * 1e18 / _price * 1e18 / decimals1);
-    return reserve0 * 1e18 / decimals0 + reserve1 * _price / decimals1;
+    console.log('reserve0 priced', _price != 0 ? reserve0 * _price / decimals0 : 0);
+    console.log('reserve1 priced', _price != 0 ? reserve1 * 1e18 / _price * 1e18 / decimals1 : 0);
+    return _price != 0 ? reserve0 * 1e18 / decimals0 + reserve1 * _price / decimals1 : 0;
   }
 }
