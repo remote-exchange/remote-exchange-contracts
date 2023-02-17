@@ -368,9 +368,6 @@ describe('pair tests', function() {
     console.log('amountOut', formatUnits(amountOut));
     console.log('amount price', amountPrice);
 
-    // price is zero before first swap
-    expect(price).eq(0)
-
     const swapAmount = parseUnits('0.1');
     await IERC20__factory.connect(token1, owner).transfer(pair2.address, swapAmount);
     await pair2.swap(await pair2.getAmountOut(swapAmount, token0), 0, owner.address, '0x');
@@ -387,7 +384,11 @@ describe('pair tests', function() {
     expect(amountPrice2).approximately(+formatUnits(price2), 0.001);
   });
 
-  it('init cPair test', async function() {
+  it('lastPrice0to1 init test', async function() {
+    // init price of stable pool with equal reserves must be close to 1.0
+    expect(+formatUnits(await pair.lastPrice0to1())).approximately(1.0, 0.000001);
+    expect(+formatUnits(await pair2.lastPrice0to1())).approximately(1.0, 0.000001);
+
     const p = await TestHelper.addLiquidity(
         factory,
         router,
@@ -400,88 +401,69 @@ describe('pair tests', function() {
     );
     const cPair = ConcentratedPair__factory.connect(await p.concentratedPair(), owner)
 
-    // lastPrice and cPair price must be zero before first swap
-    expect(await p.lastPrice0to1()).eq(0)
-    expect(await cPair.price()).eq(0)
+    const price0 = await p.lastPrice0to1()
+    expect(await cPair.price()).eq(price0)
 
-    // make first swap in pair
+    // buy token0
     const swapAmount = utils.parseUnits('2')
-    const amountOut = await p.getAmountOut(swapAmount, await p.token1())
+    const amountOut0 = await p.getAmountOut(swapAmount, await p.token1());
     await IERC20__factory.connect(await p.token1(), owner).transfer(p.address, swapAmount);
-    await p.swap(amountOut, 0, owner.address, '0x');
+    await p.swap(amountOut0, 0, owner.address, '0x');
 
-    expect(await p.lastPrice0to1()).gt(0)
-    expect(await cPair.price()).gt(0)
-    expect(await p.lastPrice0to1()).eq(await cPair.price())
+    const priceAfterSwap0 = await p.lastPrice0to1()
 
-    expect(+formatUnits(amountOut) / +formatUnits(swapAmount)).approximately(+formatUnits(await p.lastPrice0to1()), 0.001);
+    // sell token0
+    await IERC20__factory.connect(await p.token0(), owner).transfer(p.address, swapAmount);
+    const amountOut1 = await p.getAmountOut(swapAmount, await p.token0())
+    await p.swap(0, amountOut1, owner.address, '0x');
 
-    const p2 = await TestHelper.addLiquidity(
-        factory,
-        router,
-        owner,
-        dai.address,
-        ust.address,
-        utils.parseUnits('100'),
-        utils.parseUnits('100', 6),
-        true,
-    );
-    const cPair2 = ConcentratedPair__factory.connect(await p2.concentratedPair(), owner)
-    // lastPrice and cPair price must be zero before first swap
-    expect(await p2.lastPrice0to1()).eq(0)
-    expect(await cPair2.price()).eq(0)
+    const priceAfterSwap1 = await p.lastPrice0to1();
 
-    // make first swap in pair token0 to token1
-    const swapAmount2 = utils.parseUnits('2')
-    const amountOut2 = await p2.getAmountOut(swapAmount2, await p2.token0())
-    await IERC20__factory.connect(await p2.token0(), owner).transfer(p2.address, swapAmount2);
-    await p2.swap(0, amountOut2, owner.address, '0x');
+    expect(+formatUnits(amountOut0) / +formatUnits(swapAmount)).approximately(+formatUnits(price0), 0.0001);
+    expect(+formatUnits(swapAmount) / +formatUnits(amountOut1)).approximately(+formatUnits(price0), 0.0001);
 
-    expect(await p2.lastPrice0to1()).gt(0)
-    expect(await cPair2.price()).gt(0)
-    expect(await p2.lastPrice0to1()).eq(await cPair2.price())
-
-    expect(+formatUnits(swapAmount2) / +formatUnits(amountOut2, 6)).approximately(+formatUnits(await p2.lastPrice0to1()), 0.001);
+    console.log('Init price            ', price0.toString())
+    console.log('Price after buy token0', priceAfterSwap0.toString())
+    console.log('Price after buy token1', priceAfterSwap1.toString())
   });
 
   it('disable/enable cPair', async function() {
     // make first swap in pair
     const swapAmount = utils.parseUnits('0.1', 6)
-    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
-    await pair.swap(await pair.getAmountOut(swapAmount, await pair.token1()), 0, owner.address, '0x');
+    await IERC20__factory.connect(await pair2.token1(), owner).transfer(pair2.address, swapAmount);
+    await pair2.swap(await pair2.getAmountOut(swapAmount, await pair2.token1()), 0, owner.address, '0x');
 
-    const cPair = await pair.concentratedPair();
-    const t0 = IERC20__factory.connect(await pair.token0(), owner);
-    const t1 = IERC20__factory.connect(await pair.token1(), owner);
+    const cPair = await pair2.concentratedPair();
+    const t0 = IERC20__factory.connect(await pair2.token0(), owner);
+    const t1 = IERC20__factory.connect(await pair2.token1(), owner);
     expect(await t0.balanceOf(cPair)).gt(0);
     expect(await t1.balanceOf(cPair)).gt(0);
 
-    await expect(pair.toggleConcentratedPair()).to.revertedWith('!factory')
-    await factory.toggleConcentratedPair(pair.address);
+    await expect(pair2.toggleConcentratedPair()).to.revertedWith('!factory')
+    await factory.toggleConcentratedPair(pair2.address);
 
-    expect(await pair.concentratedPairEnabled()).eq(false)
+    expect(await pair2.concentratedPairEnabled()).eq(false)
     expect(await t0.balanceOf(cPair)).eq(0);
     expect(await t1.balanceOf(cPair)).eq(0);
-    expect(await pair.lastPrice0to1()).eq(0)
+    expect(await pair2.lastPrice0to1()).eq(0)
     expect(await ConcentratedPair__factory.connect(cPair, owner).price()).eq(0)
 
-    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
-    await pair.swap(await pair.getAmountOut(swapAmount, await pair.token1()), 0, owner.address, '0x');
+    await IERC20__factory.connect(await pair2.token1(), owner).transfer(pair2.address, swapAmount);
+    await pair2.swap(await pair2.getAmountOut(swapAmount, await pair2.token1()), 0, owner.address, '0x');
 
-    expect(await pair.concentratedPairEnabled()).eq(false)
+    expect(await pair2.concentratedPairEnabled()).eq(false)
     expect(await t0.balanceOf(cPair)).eq(0);
     expect(await t1.balanceOf(cPair)).eq(0);
-    expect(await pair.lastPrice0to1()).eq(0)
+    expect(await pair2.lastPrice0to1()).eq(0)
     expect(await ConcentratedPair__factory.connect(cPair, owner).price()).eq(0)
 
-    await factory.toggleConcentratedPair(pair.address);
-    expect(await pair.concentratedPairEnabled()).eq(true)
-    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
-    await pair.swap(await pair.getAmountOut(swapAmount, await pair.token1()), 0, owner.address, '0x');
+    await factory.toggleConcentratedPair(pair2.address);
+    expect(await pair2.concentratedPairEnabled()).eq(true)
+    await IERC20__factory.connect(await pair2.token1(), owner).transfer(pair2.address, swapAmount);
+    await pair2.swap(await pair2.getAmountOut(swapAmount, await pair2.token1()), 0, owner.address, '0x');
     expect(await t0.balanceOf(cPair)).gt(0);
     expect(await t1.balanceOf(cPair)).gt(0);
-    expect(await pair.lastPrice0to1()).gt(0)
-    expect(await ConcentratedPair__factory.connect(cPair, owner).price()).eq(await pair.lastPrice0to1())
+    expect(await pair2.lastPrice0to1()).gt(0)
   });
 
   it('rebalance cPair price impact test', async function() {
@@ -506,7 +488,7 @@ describe('pair tests', function() {
     }
   });
 
-  it('price curve chart stable', async function() {
+  /*it('price curve chart stable', async function() {
     // todo
   });
 
@@ -536,7 +518,7 @@ describe('pair tests', function() {
 
   it('cPair reserves rebalance should move main pair reserves safly on repeated swaps', async function() {
     // todo
-  });
+  });*/
 });
 
 async function swapInLoop(

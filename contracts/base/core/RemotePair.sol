@@ -149,6 +149,47 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     emit FeesChanged(value);
   }
 
+  function toggleConcentratedPair() external {
+    require(msg.sender == factory, "!factory");
+    if (concentratedPairEnabled) {
+      IERC20(token0).safeTransferFrom(concentratedPair, address(this), IERC20(token0).balanceOf(concentratedPair));
+      IERC20(token1).safeTransferFrom(concentratedPair, address(this), IERC20(token1).balanceOf(concentratedPair));
+      _update(
+        IERC20(token0).balanceOf(address(this)),
+        IERC20(token1).balanceOf(address(this)),
+        reserve0,
+        reserve1, 0, 0, 0, 0
+      );
+      lastPrice0to1 = 0;
+      ConcentratedPair(concentratedPair).setPrice(0);
+      concentratedPairEnabled = false;
+    } else {
+      uint _balance0 = IERC20(token0).balanceOf(address(this));
+      uint _balance1 = IERC20(token1).balanceOf(address(this));
+
+      uint _cRatio = cPairRatio();
+      if (_cRatio != 0) {
+        IERC20(token0).safeTransfer(concentratedPair, _balance0 / _cRatio);
+        IERC20(token1).safeTransfer(concentratedPair, _balance1 / _cRatio);
+        _balance0 -= (_balance0 / _cRatio);
+        _balance1 -= (_balance1 / _cRatio);
+      }
+
+      uint price;
+      if (stable) {
+        uint price1 = _amountsToPrice0to1(0, _getAmountOut(_balance0 / 10, token0, _balance0, _balance1), _balance0 / 10, 0);
+        uint price2 = _amountsToPrice0to1(_getAmountOut(_balance1 / 10, token1, _balance0, _balance1), 0, 0, _balance1 / 10);
+        price = (price1 + price2) / 2 / 1e12 * 1e12;
+      } else {
+        price = _amountsToPrice0to1(_balance0, 0, 0, _balance1);
+      }
+      lastPrice0to1 = price;
+      ConcentratedPair(concentratedPair).setPrice(price);
+      concentratedPairEnabled = true;
+      _update(_balance0, _balance1, reserve0, reserve1, 0, 0, 0, 0);
+    }
+  }
+
   function observationLength() external view returns (uint) {
     return observations.length;
   }
@@ -476,13 +517,28 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       liquidity = Math.sqrt(_amount0 * _amount1) - MINIMUM_LIQUIDITY;
       // permanently lock the first MINIMUM_LIQUIDITY tokens
       _mint(address(0), MINIMUM_LIQUIDITY);
+
+      // set first price for concentrated pair
+      uint price;
+      if (stable) {
+        uint price1 = _amountsToPrice0to1(0, _getAmountOut(_amount0 / 10, token0, _amount0, _amount1), _amount0 / 10, 0);
+        uint price2 = _amountsToPrice0to1(_getAmountOut(_amount1 / 10, token1, _amount0, _amount1), 0, 0, _amount1 / 10);
+        // todo try to avoid this rounding (invariant problem at small swaps for assets with 6 decimals)
+        price = (price1 + price2) / 2 / 1e12 * 1e12;
+        console.log('init price', price);
+      } else {
+        price = _amountsToPrice0to1(_amount0, 0, 0, _amount1);
+      }
+      lastPrice0to1 = price;
+      ConcentratedPair(cPair).setPrice(price);
+
     } else {
       liquidity = Math.min(_amount0 * _totalSupply / (_reserve0 + cBalance0), _amount1 * _totalSupply / (_reserve1 + cBalance1));
     }
     require(liquidity > 0, 'RemotePair: INSUFFICIENT_LIQUIDITY_MINTED');
     _mint(to, liquidity);
 
-    if (_totalSupply > 0 && concentratedPairEnabled) {
+    if (concentratedPairEnabled) {
       uint _cRatio = cPairRatio();
       if (_cRatio != 0) {
         IERC20(_token0).safeTransfer(cPair, _amount0 / _cRatio);
@@ -841,24 +897,5 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     balanceOf[dst] += amount;
 
     emit Transfer(src, dst, amount);
-  }
-
-  function toggleConcentratedPair() external {
-    require(msg.sender == factory, "!factory");
-    if (concentratedPairEnabled) {
-      IERC20(token0).safeTransferFrom(concentratedPair, address(this), IERC20(token0).balanceOf(concentratedPair));
-      IERC20(token1).safeTransferFrom(concentratedPair, address(this), IERC20(token1).balanceOf(concentratedPair));
-      _update(
-        IERC20(token0).balanceOf(address(this)),
-        IERC20(token1).balanceOf(address(this)),
-        reserve0,
-        reserve1, 0, 0, 0, 0
-      );
-      lastPrice0to1 = 0;
-      ConcentratedPair(concentratedPair).setPrice(0);
-      concentratedPairEnabled = false;
-    } else {
-      concentratedPairEnabled = true;
-    }
   }
 }
