@@ -68,7 +68,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 
   uint internal reserve0CumulativeLast;
   uint internal reserve1CumulativeLast;
-  uint internal price0to1Cumulative;
   uint internal volume0Cumulative;
   uint internal volume1Cumulative;
   uint public override lastPrice0to1;
@@ -122,7 +121,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     decimals0 = 10 ** IUnderlying(_token0).decimals();
     decimals1 = 10 ** IUnderlying(_token1).decimals();
 
-    observations.push(Observation(block.timestamp, 0, 0, 0, 0, 0));
+    observations.push(Observation(block.timestamp, 0, 0, 0, 0));
 
     DOMAIN_SEPARATOR = keccak256(
       abi.encode(
@@ -430,12 +429,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     return 0;
   }
 
-  function getLastAveragePrice0to1() public view returns (uint) {
-    uint timeElapsed = blockTimestampLast - observations[observations.length - 1].timestamp;
-    return price0to1Cumulative / timeElapsed;
-  }
-
-  /// @dev Update reserves and, on the first call per block, price accumulators
+  /// @dev Update reserves and, on the first call per block, volume and reserves accumulators
   function _update(
     uint balance0,
     uint balance1,
@@ -469,7 +463,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     // overflow is desired
   unchecked {
     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
-      if (_price0to1 != 0) price0to1Cumulative += _price0to1 * timeElapsed;
       reserve0CumulativeLast += _reserve0 * timeElapsed;
       reserve1CumulativeLast += _reserve1 * timeElapsed;
     }
@@ -485,12 +478,13 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       timestamp : block.timestamp,
       reserve0Cumulative : reserve0CumulativeLast,
       reserve1Cumulative : reserve1CumulativeLast,
-      price0to1Cumulative : price0to1Cumulative,
       volume0Cumulative : volume0Cumulative,
       volume1Cumulative : volume1Cumulative
       }));
       delete volume0Cumulative;
       delete volume1Cumulative;
+      delete reserve0CumulativeLast;
+      delete reserve1CumulativeLast;
     }
 
     reserve0 = balance0;

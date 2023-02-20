@@ -9,7 +9,6 @@ interface IPair {
     uint timestamp;
     uint reserve0Cumulative;
     uint reserve1Cumulative;
-    uint price0to1Cumulative;
     uint volume0Cumulative;
     uint volume1Cumulative;
   }

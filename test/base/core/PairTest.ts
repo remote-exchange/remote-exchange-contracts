@@ -505,6 +505,84 @@ describe('pair tests', function() {
     }
   });
 
+  it('average volume and reserves test', async function() {
+    const observation0 = await pair.observations(0)
+
+    // collect data for observation 1
+    let reservesStart = await pair.getReserves()
+    let expectedVolume0 = BigNumber.from(0)
+    let expectedVolume1 = BigNumber.from(0)
+    let swapAmount = utils.parseUnits('0.1', 6)
+    let amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(amountOut0, 0, owner.address, '0x');
+    expectedVolume0 = expectedVolume0.add(amountOut0)
+    expectedVolume1 = expectedVolume1.add(swapAmount)
+
+    // add 61 minutes
+    await TimeUtils.advanceBlocksOnTs(3600+60)
+    swapAmount = utils.parseUnits('0.45', 6)
+    amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(amountOut0, 0, owner.address, '0x');
+    expectedVolume0 = expectedVolume0.add(amountOut0)
+    expectedVolume1 = expectedVolume1.add(swapAmount)
+    let reservesEnd = await pair.getReserves()
+
+    const observation1 = await pair.observations(1)
+    expect(observation1.volume0Cumulative).eq(expectedVolume0)
+    expect(observation1.volume1Cumulative).eq(expectedVolume1)
+
+    let averageReserves = [
+        observation1.reserve0Cumulative.div(observation1.timestamp.sub(observation0.timestamp)),
+        observation1.reserve1Cumulative.div(observation1.timestamp.sub(observation0.timestamp)),
+    ]
+    expect(averageReserves[0]).lt(reservesStart[0])
+    expect(averageReserves[0]).gt(reservesEnd[0])
+    expect(averageReserves[1]).gt(reservesStart[1])
+    expect(averageReserves[1]).lt(reservesEnd[1])
+
+    // collect data for observation 2
+    reservesStart = await pair.getReserves()
+    expectedVolume0 = BigNumber.from(0)
+    expectedVolume1 = BigNumber.from(0)
+    swapAmount = utils.parseUnits('0.15', 6)
+    amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(amountOut0, 0, owner.address, '0x');
+    expectedVolume0 = expectedVolume0.add(amountOut0)
+    expectedVolume1 = expectedVolume1.add(swapAmount)
+    // add 10 minutes
+    await TimeUtils.advanceBlocksOnTs(600)
+    amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(amountOut0, 0, owner.address, '0x');
+    expectedVolume0 = expectedVolume0.add(amountOut0)
+    expectedVolume1 = expectedVolume1.add(swapAmount)
+
+    // add 50 minutes
+    await TimeUtils.advanceBlocksOnTs(3000)
+    swapAmount = utils.parseUnits('0.01', 6)
+    amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
+    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(amountOut0, 0, owner.address, '0x');
+    expectedVolume0 = expectedVolume0.add(amountOut0)
+    expectedVolume1 = expectedVolume1.add(swapAmount)
+    reservesEnd = await pair.getReserves()
+
+    const observation2 = await pair.observations(2)
+    expect(observation2.volume0Cumulative).eq(expectedVolume0)
+    expect(observation2.volume1Cumulative).eq(expectedVolume1)
+    averageReserves = [
+      observation2.reserve0Cumulative.div(observation2.timestamp.sub(observation1.timestamp)),
+      observation2.reserve1Cumulative.div(observation2.timestamp.sub(observation1.timestamp)),
+    ]
+    expect(averageReserves[0]).lt(reservesStart[0])
+    expect(averageReserves[0]).gt(reservesEnd[0])
+    expect(averageReserves[1]).gt(reservesStart[1])
+    expect(averageReserves[1]).lt(reservesEnd[1])
+  });
+
   /*it('price curve chart stable', async function() {
     // todo
   });
@@ -522,14 +600,6 @@ describe('pair tests', function() {
   });
 
   it('move cPair reserve to exact rebalance threshold, then swap and try to arbitrage ', async function() {
-    // todo
-  });
-
-  it('average price test', async function() {
-    // todo
-  });
-
-  it('average volume test', async function() {
     // todo
   });
 
