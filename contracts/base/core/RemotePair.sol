@@ -179,7 +179,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       if (stable) {
         uint price1 = _amountsToPrice0to1(0, _getAmountOut(_balance0 / 10, token0, _balance0, _balance1), _balance0 / 10, 0);
         uint price2 = _amountsToPrice0to1(_getAmountOut(_balance1 / 10, token1, _balance0, _balance1), 0, 0, _balance1 / 10);
-        price = (price1 + price2) / 2 / 1e12 * 1e12;
+        price = (price1 + price2) / 2;
       } else {
         price = _amountsToPrice0to1(_balance0, 0, 0, _balance1);
       }
@@ -523,8 +523,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
       if (stable) {
         uint price1 = _amountsToPrice0to1(0, _getAmountOut(_amount0 / 10, token0, _amount0, _amount1), _amount0 / 10, 0);
         uint price2 = _amountsToPrice0to1(_getAmountOut(_amount1 / 10, token1, _amount0, _amount1), 0, 0, _amount1 / 10);
-        // todo try to avoid this rounding (invariant problem at small swaps for assets with 6 decimals)
-        price = (price1 + price2) / 2 / 1e12 * 1e12;
+        price = (price1 + price2) / 2;
         console.log('init price', price);
       } else {
         price = _amountsToPrice0to1(_amount0, 0, 0, _amount1);

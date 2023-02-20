@@ -466,6 +466,23 @@ describe('pair tests', function() {
     expect(await pair2.lastPrice0to1()).gt(0)
   });
 
+  it('small liquidity invariant test', async function() {
+    const p = await TestHelper.addLiquidity(
+        factory,
+        router,
+        owner,
+        mim.address,
+        ust.address,
+        utils.parseUnits('0.3'),
+        utils.parseUnits('1', 6),
+        true,
+    );
+
+    const swapAmount = utils.parseUnits('0.1', 6)
+    await IERC20__factory.connect(await p.token1(), owner).transfer(p.address, swapAmount);
+    await p.swap(await p.getAmountOut(swapAmount, await p.token1()), 0, owner.address, '0x');
+  });
+
   it('rebalance cPair price impact test', async function() {
     // todo
   });
