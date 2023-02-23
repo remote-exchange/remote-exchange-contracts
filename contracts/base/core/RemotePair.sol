@@ -11,6 +11,8 @@ import "../../interfaces/IUnderlying.sol";
 import "./PairFees.sol";
 import "../../lib/Math.sol";
 import "../../lib/SafeERC20.sol";
+import "../../lib/ObservationLib.sol";
+import "../../lib/AdaptiveFee.sol";
 import "../Reentrancy.sol";
 import "./ConcentratedPair.sol";
 
@@ -48,7 +50,6 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   /// @dev Capture oracle reading every 60 minutes
   uint internal constant PERIOD_SIZE = 60 minutes;
 
-
   address public immutable override token0;
   address public immutable override token1;
   address public immutable fees;
@@ -56,7 +57,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   address public immutable concentratedPair;
   bool public concentratedPairEnabled;
 
-  Observation[] public observations;
+  ObservationLib.Observation[] public observations;
 
   uint public swapFee;
   uint internal immutable decimals0;
@@ -70,6 +71,9 @@ contract RemotePair is IERC20, IPair, Reentrancy {
   uint internal reserve1CumulativeLast;
   uint internal volume0Cumulative;
   uint internal volume1Cumulative;
+  uint internal price0to1Cumulative;
+  uint internal volatilityCumulative;
+  uint internal volumePerLiquidityCumulative;
   uint public override lastPrice0to1;
 
   // index0 and index1 are used to accumulate fees,
@@ -121,7 +125,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     decimals0 = 10 ** IUnderlying(_token0).decimals();
     decimals1 = 10 ** IUnderlying(_token1).decimals();
 
-    observations.push(Observation(block.timestamp, 0, 0, 0, 0));
+    observations.push(ObservationLib.Observation(block.timestamp, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 
     DOMAIN_SEPARATOR = keccak256(
       abi.encode(
@@ -139,6 +143,19 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     IERC20(_token1).safeIncreaseAllowance(concentratedPair, type(uint).max);
 
     concentratedPairEnabled = true;
+  }
+
+  function getSwapFee() public view returns(uint16) {
+    ObservationLib.Observation memory latest = observations[observations.length - 1];
+    ObservationLib.Observation memory prev = observations.length > 1 ? observations[observations.length - 2] : latest;
+    (uint volatilityAverage, uint volumePerLiqAverage) = ObservationLib._getAverages(latest, prev);
+    console.log('getSwapFee() prev.volatilityCumulative  ', prev.volatilityCumulative);
+    console.log('getSwapFee() latest.volatilityCumulative', latest.volatilityCumulative);
+    console.log('getSwapFee() prev.volumePerLiquidityCumulative  ', prev.volumePerLiquidityCumulative);
+    console.log('getSwapFee() latest.volumePerLiquidityCumulative', latest.volumePerLiquidityCumulative);
+    console.log('getSwapFee() volatilityAverage  ', volatilityAverage);
+    console.log('getSwapFee() volumePerLiqAverage', volumePerLiqAverage);
+    return AdaptiveFee._getFee(volatilityAverage / 15, volumePerLiqAverage, IFactory(factory).getFeeConfig(stable));
   }
 
   function setSwapFee(uint value) external {
@@ -440,7 +457,7 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     uint amount0In,
     uint amount1In
   ) internal {
-    Observation memory point = observations[observations.length - 1];
+    ObservationLib.Observation memory point = observations[observations.length - 1];
     uint timeElapsed = block.timestamp - blockTimestampLast;
 
     uint _price0to1 = _amountsToPrice0to1(
@@ -460,12 +477,50 @@ contract RemotePair is IERC20, IPair, Reentrancy {
 //      ConcentratedPair(concentratedPair).setPrice(_price0to1);
     }
 
+    uint avgPrice;
     // overflow is desired
   unchecked {
     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
       reserve0CumulativeLast += _reserve0 * timeElapsed;
       reserve1CumulativeLast += _reserve1 * timeElapsed;
     }
+
+    price0to1Cumulative += _price0to1 * timeElapsed;
+    uint prevPrice = point.lastPrice != 0 ? point.lastPrice : _price0to1;
+    uint prevAvgPrice = point.averagePrice != 0 ? point.averagePrice : _price0to1;
+
+    if (observations.length > 1) {
+      avgPrice = ObservationLib._getAveragePrice(
+        observations[observations.length - 1],
+        block.timestamp,
+        price0to1Cumulative,
+        _price0to1
+      );
+    } else if (block.timestamp > point.timestamp) {
+      avgPrice = price0to1Cumulative / (block.timestamp - point.timestamp);
+    }
+
+
+    console.log('_update timeElapsed', timeElapsed);
+    console.log('_update prevPrice', prevPrice);
+    console.log('_update _price0to1', _price0to1);
+    console.log('_update prevAvgPrice', prevAvgPrice);
+    console.log('_update avgPrice', avgPrice);
+    if (block.timestamp != point.timestamp) {
+      volatilityCumulative += ObservationLib._getVolatility(
+      /*timeElapsed*/block.timestamp - point.timestamp,
+        prevPrice,
+        _price0to1,
+        prevAvgPrice,
+        avgPrice
+      );
+    }
+
+    volumePerLiquidityCumulative += ObservationLib._calculateVolumePerLiquidity(
+      Math.sqrt(reserve0 * reserve1),
+      amount0In + amount0Out,
+      amount1In + amount1Out
+    );
 
     if (_volume0 != 0) volume0Cumulative += _volume0;
     if (_volume1 != 0) volume1Cumulative += _volume1;
@@ -474,12 +529,17 @@ contract RemotePair is IERC20, IPair, Reentrancy {
     // compare the last observation with current timestamp,
     // if greater than 60 minutes, record a new event
     if (timeElapsed > PERIOD_SIZE) {
-      observations.push(Observation({
-      timestamp : block.timestamp,
-      reserve0Cumulative : reserve0CumulativeLast,
-      reserve1Cumulative : reserve1CumulativeLast,
-      volume0Cumulative : volume0Cumulative,
-      volume1Cumulative : volume1Cumulative
+      observations.push(ObservationLib.Observation({
+        timestamp : block.timestamp,
+        reserve0Cumulative : reserve0CumulativeLast,
+        reserve1Cumulative : reserve1CumulativeLast,
+        volume0Cumulative : volume0Cumulative,
+        volume1Cumulative : volume1Cumulative,
+        price0to1Cumulative : price0to1Cumulative,
+        volatilityCumulative : volatilityCumulative,
+        volumePerLiquidityCumulative : volumePerLiquidityCumulative,
+        averagePrice : avgPrice,
+        lastPrice : _price0to1
       }));
       delete volume0Cumulative;
       delete volume1Cumulative;

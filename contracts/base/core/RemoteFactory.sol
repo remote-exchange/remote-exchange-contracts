@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 
 import "../../interfaces/IFactory.sol";
 import "./RemotePair.sol";
+import "../../lib/AdaptiveFee.sol";
 
 contract RemoteFactory is IFactory {
 
@@ -20,6 +21,39 @@ contract RemoteFactory is IFactory {
   address internal _temp1;
   bool internal _temp;
 
+  /// @dev 0.01% swap fee
+  uint16 internal constant BASE_FEE_STABLE = 100;
+  /// @dev 0.05% swap fee
+  uint16 internal constant BASE_FEE_VOLATILE = 500;
+  uint32 internal constant FEE_DENOMINATOR = 1_000_000;
+
+  // values of constants for sigmoids in fee calculation formula
+  // max fee = 0.5%
+  AdaptiveFee.Configuration private _feeConfigStable = AdaptiveFee.Configuration(
+    1000 - BASE_FEE_STABLE, // alpha1
+    5000 - 1000, // alpha2
+    360, // beta1
+    60000, // beta2
+    59, // gamma1
+    8500, // gamma2
+    0, // volumeBeta
+    10, // volumeGamma
+    BASE_FEE_STABLE // baseFee
+  );
+  // max fee = 0.5%
+  AdaptiveFee.Configuration private _feeConfigVolatile = AdaptiveFee.Configuration(
+    1000 - BASE_FEE_VOLATILE, // alpha1
+    5000 - 1000, // alpha2
+    360, // beta1
+    60000, // beta2
+    59, // gamma1
+    8500, // gamma2
+    0, // volumeBeta
+    10, // volumeGamma
+    BASE_FEE_VOLATILE // baseFee
+  );
+
+
   event PairCreated(
     address indexed token0,
     address indexed token1,
@@ -30,6 +64,10 @@ contract RemoteFactory is IFactory {
 
   constructor() {
     pauser = msg.sender;
+  }
+
+  function getFeeConfig(bool stable) external view returns (AdaptiveFee.Configuration memory) {
+    return stable ? _feeConfigStable : _feeConfigVolatile;
   }
 
   function allPairsLength() external view returns (uint) {

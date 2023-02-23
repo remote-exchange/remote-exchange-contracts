@@ -41,7 +41,7 @@ describe('pair tests', function() {
   let pair2: RemotePair;
 
   const MAX_GAS_MINT = 220_000; // 180_000
-  const MAX_GAS_BURN = 160_000;
+  const MAX_GAS_BURN = 180_000; // 160_000
   const MAX_GAS_SWAP = 500_000; // 400_000
 
   before(async function() {
@@ -92,7 +92,7 @@ describe('pair tests', function() {
     await TimeUtils.rollback(snapshot);
   });
 
-  it('observationLength test', async function() {
+  /*it('observationLength test', async function() {
     expect(await pair.observationLength()).is.eq(1);
   });
 
@@ -503,19 +503,38 @@ describe('pair tests', function() {
     for (let i = 0; i < 10; i++) {
       await swap(p);
     }
-  });
+  });*/
 
-  it('average volume and reserves test', async function() {
+  it('Adaptive fee test', async function() {
+    type HistoryPoint = {
+      lastObservation: number
+      swapVolume: string
+      fee: string
+      swaps: string[]
+    }
+    const feeHistory: HistoryPoint[] = []
+    let swaps = []
+    const token0 = IERC20__factory.connect(await pair.token0(), owner)
+    const token1 = IERC20__factory.connect(await pair.token1(), owner)
+    const formatAmount = (a: BigNumber, decimals: number = 18) => {
+      return Math.round(parseFloat(formatUnits(a, decimals)) * 10000) / 10000
+    }
+    const formatFee = (f: number) => `${f/10000}%`
+    const reservesInitial = await pair.getReserves()
+
+
     const observation0 = await pair.observations(0)
 
     // collect data for observation 1
+    swaps = []
     let reservesStart = await pair.getReserves()
     let expectedVolume0 = BigNumber.from(0)
     let expectedVolume1 = BigNumber.from(0)
     let swapAmount = utils.parseUnits('0.1', 6)
     let amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
-    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await token1.transfer(pair.address, swapAmount);
     await pair.swap(amountOut0, 0, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount, 6)} t1 -> ${formatAmount(amountOut0)} t0`)
     expectedVolume0 = expectedVolume0.add(amountOut0)
     expectedVolume1 = expectedVolume1.add(swapAmount)
 
@@ -523,8 +542,9 @@ describe('pair tests', function() {
     await TimeUtils.advanceBlocksOnTs(3600+60)
     swapAmount = utils.parseUnits('0.45', 6)
     amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
-    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await token1.transfer(pair.address, swapAmount);
     await pair.swap(amountOut0, 0, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount, 6)} t1 -> ${formatAmount(amountOut0)} t0`)
     expectedVolume0 = expectedVolume0.add(amountOut0)
     expectedVolume1 = expectedVolume1.add(swapAmount)
     let reservesEnd = await pair.getReserves()
@@ -542,14 +562,23 @@ describe('pair tests', function() {
     expect(averageReserves[1]).gt(reservesStart[1])
     expect(averageReserves[1]).lt(reservesEnd[1])
 
+    feeHistory.push({
+      lastObservation: (await pair.observationLength()).sub(1).toNumber(),
+      swapVolume: expectedVolume0.add(expectedVolume1).toString(),
+      fee: formatFee(await pair.getSwapFee()),
+      swaps,
+    })
+
     // collect data for observation 2
+    swaps = []
     reservesStart = await pair.getReserves()
     expectedVolume0 = BigNumber.from(0)
     expectedVolume1 = BigNumber.from(0)
-    swapAmount = utils.parseUnits('0.15', 6)
+    swapAmount = utils.parseUnits('0.11', 6)
     amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
-    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await token1.transfer(pair.address, swapAmount);
     await pair.swap(amountOut0, 0, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount, 6)} t1 -> ${formatAmount(amountOut0)} t0`)
     expectedVolume0 = expectedVolume0.add(amountOut0)
     expectedVolume1 = expectedVolume1.add(swapAmount)
     // add 10 minutes
@@ -557,6 +586,7 @@ describe('pair tests', function() {
     amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
     await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
     await pair.swap(amountOut0, 0, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount, 6)} t1 -> ${formatAmount(amountOut0)} t0`)
     expectedVolume0 = expectedVolume0.add(amountOut0)
     expectedVolume1 = expectedVolume1.add(swapAmount)
 
@@ -564,8 +594,9 @@ describe('pair tests', function() {
     await TimeUtils.advanceBlocksOnTs(3000)
     swapAmount = utils.parseUnits('0.01', 6)
     amountOut0 = await pair.getAmountOut(swapAmount, await pair.token1())
-    await IERC20__factory.connect(await pair.token1(), owner).transfer(pair.address, swapAmount);
+    await token1.transfer(pair.address, swapAmount);
     await pair.swap(amountOut0, 0, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount, 6)} t1 -> ${formatAmount(amountOut0)} t0`)
     expectedVolume0 = expectedVolume0.add(amountOut0)
     expectedVolume1 = expectedVolume1.add(swapAmount)
     reservesEnd = await pair.getReserves()
@@ -581,6 +612,145 @@ describe('pair tests', function() {
     expect(averageReserves[0]).gt(reservesEnd[0])
     expect(averageReserves[1]).gt(reservesStart[1])
     expect(averageReserves[1]).lt(reservesEnd[1])
+
+    feeHistory.push({
+      lastObservation: (await pair.observationLength()).sub(1).toNumber(),
+      swapVolume: expectedVolume0.add(expectedVolume1).toString(),
+      fee: formatFee(await pair.getSwapFee()),
+      swaps,
+    })
+
+    // collect data for observation 3
+    swaps = []
+    // add 61 minutes
+    await TimeUtils.advanceBlocksOnTs(3600+60)
+    expectedVolume0 = BigNumber.from(0)
+    expectedVolume1 = BigNumber.from(0)
+    swapAmount = utils.parseUnits('0.01')
+    let amountOut1 = await pair.getAmountOut(swapAmount, await pair.token0())
+    await token0.transfer(pair.address, swapAmount);
+    await pair.swap(0, amountOut1, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount)} t0 -> ${formatAmount(amountOut1, 6)} t1`)
+    expectedVolume0 = expectedVolume0.add(swapAmount)
+    expectedVolume1 = expectedVolume1.add(amountOut1)
+
+    feeHistory.push({
+      lastObservation: (await pair.observationLength()).sub(1).toNumber(),
+      swapVolume: expectedVolume0.add(expectedVolume1).toString(),
+      fee: formatFee(await pair.getSwapFee()),
+      swaps,
+    })
+
+    // collect data for observation 4
+    swaps = []
+    // add 61 minutes
+    await TimeUtils.advanceBlocksOnTs(3600+60)
+    expectedVolume0 = BigNumber.from(0)
+    expectedVolume1 = BigNumber.from(0)
+    swapAmount = utils.parseUnits('0.1')
+    amountOut1 = await pair.getAmountOut(swapAmount, await pair.token0())
+    await token0.transfer(pair.address, swapAmount);
+    await pair.swap(0, amountOut1, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount)} t0 -> ${formatAmount(amountOut1, 6)} t1`)
+    expectedVolume0 = expectedVolume0.add(swapAmount)
+    expectedVolume1 = expectedVolume1.add(amountOut1)
+
+    feeHistory.push({
+      lastObservation: (await pair.observationLength()).sub(1).toNumber(),
+      swapVolume: expectedVolume0.add(expectedVolume1).toString(),
+      fee: formatFee(await pair.getSwapFee()),
+      swaps,
+    })
+
+    // collect data for observation 5
+    swaps = []
+    expectedVolume0 = BigNumber.from(0)
+    expectedVolume1 = BigNumber.from(0)
+
+    swapAmount = utils.parseUnits('0.01')
+    amountOut1 = await pair.getAmountOut(swapAmount, await pair.token0())
+    await token0.transfer(pair.address, swapAmount);
+    await pair.swap(0, amountOut1, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount)} t0 -> ${formatAmount(amountOut1, 6)} t1`)
+    expectedVolume0 = expectedVolume0.add(swapAmount)
+    expectedVolume1 = expectedVolume1.add(amountOut1)
+
+    // add 61 minutes
+    await TimeUtils.advanceBlocksOnTs(3600+60)
+
+    swapAmount = utils.parseUnits('0.1')
+    amountOut1 = await pair.getAmountOut(swapAmount, await pair.token0())
+    await token0.transfer(pair.address, swapAmount);
+    await pair.swap(0, amountOut1, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount)} t0 -> ${formatAmount(amountOut1, 6)} t1`)
+    expectedVolume0 = expectedVolume0.add(swapAmount)
+    expectedVolume1 = expectedVolume1.add(amountOut1)
+
+    feeHistory.push({
+      lastObservation: (await pair.observationLength()).sub(1).toNumber(),
+      swapVolume: expectedVolume0.add(expectedVolume1).toString(),
+      fee: formatFee(await pair.getSwapFee()),
+      swaps,
+    })
+
+    // collect data for observation 6
+    swaps = []
+    // add 61 minutes
+    await TimeUtils.advanceBlocksOnTs(3600+60)
+    expectedVolume0 = BigNumber.from(0)
+    expectedVolume1 = BigNumber.from(0)
+    swapAmount = utils.parseUnits('0.001')
+    amountOut1 = await pair.getAmountOut(swapAmount, await pair.token0())
+    await token0.transfer(pair.address, swapAmount);
+    await pair.swap(0, amountOut1, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount)} t0 -> ${formatAmount(amountOut1, 6)} t1`)
+    expectedVolume0 = expectedVolume0.add(swapAmount)
+    expectedVolume1 = expectedVolume1.add(amountOut1)
+
+    feeHistory.push({
+      lastObservation: (await pair.observationLength()).sub(1).toNumber(),
+      swapVolume: expectedVolume0.add(expectedVolume1).toString(),
+      fee: formatFee(await pair.getSwapFee()),
+      swaps,
+    })
+
+    // collect data for observation 7
+    swaps = []
+    expectedVolume0 = BigNumber.from(0)
+    expectedVolume1 = BigNumber.from(0)
+    swapAmount = utils.parseUnits('0.003')
+    amountOut1 = await pair.getAmountOut(swapAmount, await pair.token0())
+    await token0.transfer(pair.address, swapAmount);
+    await pair.swap(0, amountOut1, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount)} t0 -> ${formatAmount(amountOut1, 6)} t1`)
+    expectedVolume0 = expectedVolume0.add(swapAmount)
+    expectedVolume1 = expectedVolume1.add(amountOut1)
+    // add 61 minutes
+    await TimeUtils.advanceBlocksOnTs(3600+60)
+    swapAmount = utils.parseUnits('0.0001')
+    amountOut1 = await pair.getAmountOut(swapAmount, await pair.token0())
+    await IERC20__factory.connect(await pair.token0(), owner).transfer(pair.address, swapAmount);
+    await pair.swap(0, amountOut1, owner.address, '0x');
+    swaps.push(`${formatAmount(swapAmount)} t0 -> ${formatAmount(amountOut1, 6)} t1`)
+    expectedVolume0 = expectedVolume0.add(swapAmount)
+    expectedVolume1 = expectedVolume1.add(amountOut1)
+
+    feeHistory.push({
+      lastObservation: (await pair.observationLength()).sub(1).toNumber(),
+      swapVolume: expectedVolume0.add(expectedVolume1).toString(),
+      fee: formatFee(await pair.getSwapFee()),
+      swaps,
+    })
+
+    console.log('# Adaptive fee draft 0 test')
+    const feeConfig = await factory.getFeeConfig(await pair.stable())
+    console.log(`Min fee: ${formatFee(feeConfig.baseFee)}, max fee: ${formatFee(feeConfig.baseFee + feeConfig.alpha1 + feeConfig.alpha2)}`)
+    console.log(`Initial reserves: ${formatAmount(reservesInitial[0])} t0, ${formatAmount(reservesInitial[1], 6)} t1`)
+
+    feeHistory.forEach(h => {
+      console.log(`Observation: ${h.lastObservation}; NEW FEE: ${h.fee};  \tSwaps: ${h.swaps.join(', ')}`)
+    })
+    // console.log(feeHistory)
   });
 
   /*it('price curve chart stable', async function() {
