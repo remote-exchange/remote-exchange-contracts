@@ -158,7 +158,7 @@ describe('pair tests', function() {
 
   it('swap on pause test', async function() {
     await factory.setPause(true);
-    await expect(pair2.swap(1, 1, owner.address, '0x')).revertedWith('PAUSE');
+    await expect(pair2.swap(1, 1, owner.address, '0x')).revertedWith('RemotePair: PAUSE');
   });
 
   it('insufficient output amount', async function() {
@@ -211,7 +211,7 @@ describe('pair tests', function() {
   });
 
   it('approve with zero adr revert', async function() {
-    await expect(pair2.approve(Misc.ZERO_ADDRESS, 1)).revertedWith('Approve to the zero address');
+    await expect(pair2.approve(Misc.ZERO_ADDRESS, 1)).revertedWith('RemotePair: Approve to the zero address');
   });
 
   it('permit expire', async function() {
@@ -226,7 +226,7 @@ describe('pair tests', function() {
       parseUnits('1'),
       '1',
     );
-    await expect(pair2.permit(owner.address, pair2.address, parseUnits('1'), '1', v, r, s)).revertedWith('EXPIRED');
+    await expect(pair2.permit(owner.address, pair2.address, parseUnits('1'), '1', v, r, s)).revertedWith('RemotePair: EXPIRED');
   });
 
   it('permit invalid signature', async function() {
@@ -242,7 +242,7 @@ describe('pair tests', function() {
       '999999999999',
     );
     await expect(pair2.permit(pair2.address, pair2.address, parseUnits('1'), '999999999999', v, r, s))
-      .revertedWith('INVALID_SIGNATURE');
+      .revertedWith('RemotePair: INVALID_SIGNATURE');
   });
 
   it('transfer to himself without approve', async function() {
@@ -250,15 +250,15 @@ describe('pair tests', function() {
   });
 
   it('transfer without allowence revert', async function() {
-    await expect(pair2.transferFrom(owner2.address, owner.address, 1)).revertedWith('Insufficient allowance');
+    await expect(pair2.transferFrom(owner2.address, owner.address, 1)).revertedWith('RemotePair: Insufficient allowance');
   });
 
   it('transfer to zero address should be reverted', async function() {
-    await expect(pair2.transferFrom(owner.address, Misc.ZERO_ADDRESS, 1)).revertedWith('Transfer to the zero address');
+    await expect(pair2.transferFrom(owner.address, Misc.ZERO_ADDRESS, 1)).revertedWith('RemotePair: Transfer to the zero address');
   });
 
   it('transfer exceed balance', async function() {
-    await expect(pair2.transfer(owner.address, parseUnits('999999'))).revertedWith('Transfer amount exceeds balance');
+    await expect(pair2.transfer(owner.address, parseUnits('999999'))).revertedWith('RemotePair: Transfer amount exceeds balance');
   });
 
   it('getAmountOut loop test', async function() {
