@@ -52,7 +52,7 @@ describe("lib tests", function () {
   });
 
   it("mock token call wrong2 for cover Address lib", async function () {
-    await expect(mim.testWrongCall2()).revertedWith('');
+    await expect(mim.testWrongCall2()).revertedWith('panic code 0x11');
   });
 
   it("mock token call wrong for cover Address lib", async function () {
