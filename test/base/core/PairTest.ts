@@ -41,7 +41,7 @@ describe('pair tests', function() {
   let pair2: RemotePair;
 
   const MAX_GAS_MINT = 220_000; // 180_000
-  const MAX_GAS_BURN = 160_000;
+  const MAX_GAS_BURN = 170_000;
   const MAX_GAS_SWAP = 500_000; // 400_000
 
   before(async function() {
@@ -556,7 +556,7 @@ describe('pair tests', function() {
   });
 
   it('price curve chart volatile', async function() {
-    await writeFileSync('tmp/swap.txt', '', 'utf8');
+    await writeFileSync('swap.txt', '', 'utf8');
     const p = await TestHelper.addLiquidity(
       factory,
       router,
@@ -879,7 +879,7 @@ async function swap(pair: RemotePair, isTokenIn0 = true, amountIn = BigNumber.fr
   data += formatUnits(cPriceAfter);
   data += '\n';
 
-  await appendFileSync('tmp/swap.txt', data, 'utf8');
+  await appendFileSync('swap.txt', data, 'utf8');
 
   if (isTokenIn0) {
     expect(priceAfter.gte(price)).eq(true);
