@@ -86,14 +86,15 @@ contract ConcentratedPair {
     uint cK
   ) {
     uint _price = price;
-
     uint reserve1 = IERC20(token1).balanceOf(address(this));
     amount1OutRemaining = amount1Out > reserve1 ? amount1Out - reserve1 : 0;
-    amountIn0 = Math.ceilDiv(Math.ceilDiv((amount1Out - amount1OutRemaining) * 1e18 / decimals1 * _price, 1e18) * decimals0, 1e18);
+    amountIn0 = Math.ceilDiv((amount1Out - amount1OutRemaining) * 1e18 / decimals1 * _price, 1e18) * decimals0;
+    amountIn0 = Math.ceilDiv(amountIn0, 1e18);
 
     uint reserve0 = IERC20(token0).balanceOf(address(this));
     amount0OutRemaining = amount0Out > reserve0 ? amount0Out - reserve0 : 0;
-    amountIn1 = Math.ceilDiv(Math.ceilDiv((amount0Out - amount0OutRemaining) * 1e18 / decimals0 * 1e18, _price) * decimals1, 1e18);
+    amountIn1 = Math.ceilDiv((amount0Out - amount0OutRemaining) * 1e18 / decimals0 * 1e18, _price) * decimals1;
+    amountIn1 = Math.ceilDiv(amountIn1, 1e18);
 
     cK = _k(reserve0, reserve1, _price);
   }
