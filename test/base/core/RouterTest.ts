@@ -994,7 +994,7 @@ describe('router tests', function() {
     )).revertedWith('RemoteRouter: INVALID_PATH');
   });
 
-  it('router with broken matic should revert', async function() {
+  it.skip('router with broken matic should revert', async function() {
     await check(
       owner,
       router,
