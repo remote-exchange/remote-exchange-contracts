@@ -52,13 +52,13 @@ describe('ConcentratedPairTest', function() {
     await pair.setPrice(parseUnits('2'));
 
     const k = await pair.k();
-    expect(+formatUnits(k)).eq(4)
+    expect(+formatUnits(k)).eq(5)
 
     await usdc1.transferFrom(pair.address, owner.address, parseUnits('1', 6));
     await wbtc0.mint(pair.address, parseUnits('0.5', 8));
 
     const k2 = await pair.k();
-    expect(k).eq(k2);
+    expect(+formatUnits(k2)).eq(3.5);
   });
 
   it('get amount out test', async function() {

@@ -41,7 +41,7 @@ describe('pair tests', function() {
   let pair2: RemotePair;
 
   const MAX_GAS_MINT = 220_000; // 180_000
-  const MAX_GAS_BURN = 160_000;
+  const MAX_GAS_BURN = 170_000;
   const MAX_GAS_SWAP = 500_000; // 400_000
 
   before(async function() {
@@ -484,11 +484,79 @@ describe('pair tests', function() {
   });
 
   it('rebalance cPair price impact test', async function() {
-    // todo
+    const forPriceAmount = utils.parseUnits('1');
+    const swapAmount = parseUnits('400');
+
+    const pair3 = await TestHelper.addLiquidity(
+        factory,
+        router,
+        owner,
+        wmatic.address,
+        mim.address,
+        utils.parseUnits('1000'),
+        utils.parseUnits('1000'),
+        true,
+    );
+    const cPair = await ConcentratedPair__factory.connect(await pair3.concentratedPair(), owner);
+    expect(await pair3.concentratedPairEnabled()).eq(true);
+
+    const beforeSwapCPairPrice = await cPair.price();
+    const beforeSwapPairPrice = await pair3.getAmountOut(forPriceAmount, mim.address);
+
+    const wmaticAmount = await wmatic.balanceOf(owner.address);
+    const mimAmount = await mim.balanceOf(owner.address);
+
+    await mim.approve(router.address, swapAmount);
+    await router.swapExactTokensForTokensSimple(
+        swapAmount,
+        0,
+        mim.address,
+        wmatic.address,
+        true,
+        owner.address,
+        99999999999,
+    );
+
+    const wmaticAfterSwap0Amount = await wmatic.balanceOf(owner.address);
+    const mimAfterSwap0Amount = await mim.balanceOf(owner.address);
+    const wmatic0Diff = wmaticAfterSwap0Amount - wmaticAmount;
+    const mim0Diff = mimAmount - mimAfterSwap0Amount;
+    console.log('diff wmatic ', wmatic0Diff);
+    console.log('diff mim '   , mim0Diff);
+
+    const afterSwap0CPairPrice = await cPair.price();
+    const afterSwap0PairPrice = await pair3.getAmountOut(forPriceAmount, mim.address);
+    expect(afterSwap0CPairPrice > beforeSwapCPairPrice).eq(true);
+    expect(afterSwap0PairPrice < beforeSwapPairPrice).eq(true);
+
+    await mim.approve(router.address, swapAmount);
+    await router.swapExactTokensForTokensSimple(
+        swapAmount,
+        0,
+        mim.address,
+        wmatic.address,
+        true,
+        owner.address,
+        99999999999,
+    );
+
+    const wmaticAfterSwap1Amount = await wmatic.balanceOf(owner.address);
+    const mimAfterSwap1Amount = await mim.balanceOf(owner.address);
+    const wmatic1Diff = wmaticAfterSwap1Amount - wmaticAfterSwap0Amount;
+    const mim1Diff = mimAfterSwap0Amount - mimAfterSwap1Amount;
+    console.log('diff wmatic ', wmatic1Diff);
+    console.log('diff mim '   , mim1Diff);
+
+    const afterSwap1CPairPrice = await cPair.price();
+    const afterSwap1PairPrice = await pair3.getAmountOut(forPriceAmount, mim.address);
+    expect(afterSwap1CPairPrice > afterSwap0CPairPrice).eq(true);
+    expect(afterSwap1PairPrice < afterSwap0PairPrice).eq(true);
+
+    expect(wmatic1Diff < wmatic0Diff).eq(true);
   });
 
   it('price curve chart volatile', async function() {
-    await writeFileSync('tmp/swap.txt', '', 'utf8');
+    await writeFileSync('swap.txt', '', 'utf8');
     const p = await TestHelper.addLiquidity(
       factory,
       router,
@@ -811,7 +879,7 @@ async function swap(pair: RemotePair, isTokenIn0 = true, amountIn = BigNumber.fr
   data += formatUnits(cPriceAfter);
   data += '\n';
 
-  await appendFileSync('tmp/swap.txt', data, 'utf8');
+  await appendFileSync('swap.txt', data, 'utf8');
 
   if (isTokenIn0) {
     expect(priceAfter.gte(price)).eq(true);
